@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Календарь-планер</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #F69593;
+            --user1: #D9ADD1;
+            --user2: #E26728;
+            --user3: #CBCADC;
+            --text: #2d2d2d;
+            --text-light: #5a5a5a;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+            --font: 'Montserrat', sans-serif;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            touch-action: manipulation;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 30%),
+                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.12) 0%, transparent 35%),
+                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.10) 0%, transparent 25%),
+                radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.08) 0%, transparent 30%),
+                repeating-conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.03) 5deg, transparent 10deg),
+                repeating-conic-gradient(from 45deg, transparent 0deg, rgba(255, 255, 255, 0.02) 8deg, transparent 15deg);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .rose-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.2;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .rose-bg svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+
+        #app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 4px 12px;
+            flex-shrink: 0;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-family: var(--font);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px 14px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .header-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .header-btn.active {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* User selector */
+        .user-selector {
+            display: flex;
+            gap: 8px;
+            padding: 4px 0 12px;
+            flex-shrink: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .user-selector::-webkit-scrollbar {
+            display: none;
+        }
+
+        .user-btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+
+        .user-btn:active {
+            transform: scale(0.95);
+        }
+
+        .user-btn.active {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .user-btn .color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        /* Date navigation */
+        .date-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0 12px;
+            flex-shrink: 0;
+            justify-content: center;
+        }
+
+        .date-nav-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+
+        .date-nav-btn:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .date-display {
+            font-family: var(--font);
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            min-width: 120px;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .today-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+
+        .today-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Content area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+            margin: 0 -4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            scroll-behavior: smooth;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        /* Day view */
+        .day-view {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .day-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .day-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .day-card-header .color-bar {
+            width: 4px;
+            height: 28px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .day-card-header .user-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--font);
+        }
+
+        .day-card-header .badge {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            background: rgba(0, 0, 0, 0.04);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-family: var(--font);
+        }
+
+        /* Tasks list */
+        .tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            transition: all 0.2s;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .task-item .task-time {
+            font-size: 13px;
+            color: var(--text-light);
+            font-weight: 700;
+            min-width: 48px;
+            font-family: var(--font);
+        }
+
+        .task-item .task-text {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-word;
+            font-family: var(--font);
+        }
+
+        .task-item .task-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .task-item .task-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(0, 0, 0, 0.04);
+            color: var(--text-light);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .task-item .task-btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .task-item .task-btn.delete:hover {
+            color: #e74c3c;
+        }
+
+        .task-empty {
+            text-align: center;
+            color: var(--text-light);
+            padding: 20px 0;
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.7;
+            font-family: var(--font);
+        }
+
+        /* Add task form */
+        .add-task-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-task-form input[type="time"] {
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            width: 80px;
+            flex-shrink: 0;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .add-task-form input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            min-width: 100px;
+        }
+
+        .add-task-form input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .add-task-form .add-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .add-task-form .add-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Week view - компактная версия */
+        .week-compact {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .week-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .week-card .week-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .week-card .week-header .color-bar {
+            width: 4px;
+            height: 28px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .week-card .week-header .user-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--font);
+        }
+
+        .week-card .week-header .badge {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            background: rgba(0, 0, 0, 0.04);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-family: var(--font);
+        }
+
+        .week-day-row {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            padding: 4px 0;
+            min-height: 32px;
+        }
+
+        .week-day-row:last-child {
+            border-bottom: none;
+        }
+
+        .week-day-row .day-label {
+            min-width: 48px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            padding-right: 8px;
+        }
+
+        .week-day-row .day-label.today {
+            color: #e74c3c;
+        }
+
+        .week-day-row .day-tasks {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            padding: 2px 0;
+        }
+
+        .week-day-row .day-tasks .wtask {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.4);
+            padding: 2px 10px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-time {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-user-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-delete {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 0 2px;
+            font-weight: 700;
+            touch-action: manipulation;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-delete:active {
+            transform: scale(0.8);
+        }
+
+        .week-day-row .day-tasks .week-empty-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-light);
+            opacity: 0.5;
+        }
+
+        /* Форма добавления в недельном виде - компактная */
+        .week-add-form {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .week-add-form .wa-day-select {
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            min-width: 60px;
+        }
+
+        .week-add-form input[type="time"] {
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            width: 70px;
+            flex-shrink: 0;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .week-add-form input[type="text"] {
+            flex: 1;
+            min-width: 80px;
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+        }
+
+        .week-add-form input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .week-add-form .add-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .week-add-form .add-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Модальное окно удаления */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+            text-align: center;
+        }
+
+        .modal-content .modal-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .modal-content h3 {
+            font-family: var(--font);
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .modal-content p {
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .modal-content .task-preview {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .modal-actions button:active {
+            transform: scale(0.95);
+        }
+
+        .modal-actions .btn-cancel {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--text);
+        }
+
+        .modal-actions .btn-cancel:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-actions .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .modal-actions .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        /* Responsive */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #app {
+                padding: 8px 16px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .header-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .user-btn {
+                padding: 6px 14px;
+                font-size: 14px;
+            }
+            .date-display {
+                font-size: 16px;
+                min-width: 80px;
+            }
+            .day-card {
+                padding: 12px;
+            }
+            .week-card {
+                padding: 12px;
+            }
+            .day-card-header .user-name {
+                font-size: 16px;
+            }
+            .task-item {
+                padding: 6px 10px;
+            }
+            .task-item .task-text {
+                font-size: 13px;
+            }
+            .add-task-form input {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            .week-day-row .day-label {
+                min-width: 36px;
+                font-size: 11px;
+            }
+            .week-day-row .day-tasks .wtask {
+                font-size: 11px;
+                padding: 1px 8px;
+            }
+            .date-nav {
+                padding: 2px 0 8px;
+            }
+            .date-nav-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+            .content {
+                padding-bottom: 4px;
+            }
+        }
+
+        @media (min-width: 600px) {
+            .day-view {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .week-compact {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .header h1 {
+                font-size: 34px;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .day-view {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .week-compact {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            #app {
+                padding: 20px 32px;
+            }
+            .header h1 {
+                font-size: 40px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .week-compact {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .sync-status {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: var(--font);
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sync-status.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="rose-bg">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <g opacity="0.3">
+                <circle cx="15" cy="15" r="8" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+                <circle cx="15" cy="15" r="5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <circle cx="15" cy="15" r="2" fill="rgba(255,255,255,0.2)"/>
+                <path d="M15 7 C 18 10, 20 15, 15 20 C 10 15, 12 10, 15 7" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <path d="M7 15 C 10 12, 15 10, 20 15 C 15 20, 10 18, 7 15" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <path d="M10 10 C 13 13, 17 13, 20 10" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                
+                <circle cx="85" cy="25" r="10" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <circle cx="85" cy="25" r="6" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="85" cy="25" r="3" fill="rgba(255,255,255,0.15)"/>
+                <path d="M85 15 C 90 18, 93 23, 85 30 C 77 23, 80 18, 85 15" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                
+                <circle cx="50" cy="85" r="12" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/>
+                <circle cx="50" cy="85" r="7" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="50" cy="85" r="3" fill="rgba(255,255,255,0.1)"/>
+                <path d="M50 73 C 58 78, 62 85, 50 92 C 38 85, 42 78, 50 73" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <path d="M38 85 C 42 80, 48 77, 55 80 C 58 85, 55 92, 48 95" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+                <circle cx="90" cy="80" r="7" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="90" cy="80" r="4" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+                <path d="M90 73 C 94 76, 96 80, 90 85 C 84 80, 86 76, 90 73" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+                <circle cx="10" cy="70" r="6" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="10" cy="70" r="3" fill="rgba(255,255,255,0.1)"/>
+                <path d="M10 64 C 14 67, 15 70, 10 74 C 5 70, 6 67, 10 64" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+                <ellipse cx="25" cy="30" rx="8" ry="3" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" transform="rotate(-30 25 30)"/>
+                <ellipse cx="70" cy="70" rx="6" ry="2.5" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.5" transform="rotate(20 70 70)"/>
+                <ellipse cx="35" cy="75" rx="7" ry="2.5" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5" transform="rotate(-15 35 75)"/>
+                <ellipse cx="75" cy="45" rx="5" ry="2" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5" transform="rotate(40 75 45)"/>
+            </g>
+        </svg>
+    </div>
+
+    <div id="app">
+        <div class="header">
+            <h1>🌹 Планер</h1>
+            <div class="header-controls">
+                <button class="header-btn active" id="viewDay" data-view="day">День</button>
+                <button class="header-btn" id="viewWeek" data-view="week">Неделя</button>
+            </div>
+        </div>
+
+        <div class="user-selector" id="userSelector"></div>
+
+        <div class="date-nav">
+            <button class="date-nav-btn" id="prevDate">‹</button>
+            <span class="date-display" id="dateDisplay"></span>
+            <button class="date-nav-btn" id="nextDate">›</button>
+            <button class="today-btn" id="todayBtn">Сегодня</button>
+        </div>
+
+        <div class="content" id="content"></div>
+
+        <div class="sync-status" id="syncStatus">● Синхронизировано</div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const COLORS = ['#D9ADD1', '#E26728', '#CBCADC'];
+            const USER_NAMES = ['Лизик', 'Дашик', 'Катик'];
+            const STORAGE_KEY = 'planner_data';
+
+            let state = {
+                view: 'day',
+                selectedUser: 0,
+                currentDate: new Date(),
+                data: {}
+            };
+
+            let deleteTarget = null;
+            let syncTimeout = null;
+
+            const $ = id => document.getElementById(id);
+            const userSelector = $('userSelector');
+            const dateDisplay = $('dateDisplay');
+            const content = $('content');
+            const syncStatus = $('syncStatus');
+
+            function formatDateKey(date) {
+                const d = new Date(date);
+                return d.getFullYear() + '-' + 
+                       String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(d.getDate()).padStart(2, '0');
+            }
+
+            function formatDateDisplay(date) {
+                const d = new Date(date);
+                const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+                return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+            }
+
+            function formatWeekRange(date) {
+                const start = new Date(date);
+                start.setDate(start.getDate() - start.getDay() + 1);
+                const end = new Date(start);
+                end.setDate(end.getDate() + 6);
+                const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+                if (start.getMonth() === end.getMonth()) {
+                    return start.getDate() + '–' + end.getDate() + ' ' + months[start.getMonth()];
+                } else {
+                    return start.getDate() + ' ' + months[start.getMonth()] + ' – ' + 
+                           end.getDate() + ' ' + months[end.getMonth()];
+                }
+            }
+
+            function getWeekDays(date) {
+                const start = new Date(date);
+                start.setDate(start.getDate() - start.getDay() + 1);
+                const days = [];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(start);
+                    d.setDate(d.getDate() + i);
+                    days.push(d);
+                }
+                return days;
+            }
+
+            function isToday(date) {
+                const d = new Date(date);
+                const t = new Date();
+                return d.getFullYear() === t.getFullYear() &&
+                       d.getMonth() === t.getMonth() &&
+                       d.getDate() === t.getDate();
+            }
+
+            function getDayOfWeek(date) {
+                const days = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+                return days[date.getDay() === 0 ? 6 : date.getDay() - 1];
+            }
+
+            function loadData() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (raw) {
+                        state.data = JSON.parse(raw);
+                    } else {
+                        state.data = {};
+                    }
+                } catch (e) {
+                    state.data = {};
+                }
+                for (let u = 0; u < 3; u++) {
+                    if (!state.data[u]) state.data[u] = {};
+                }
+                saveData();
+            }
+
+            function saveData() {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+                } catch (e) {
+                    console.warn('Failed to save data:', e);
+                }
+            }
+
+            function getTasks(user, dateKey) {
+                if (!state.data[user]) state.data[user] = {};
+                if (!state.data[user][dateKey]) state.data[user][dateKey] = [];
+                return state.data[user][dateKey];
+            }
+
+            function setTasks(user, dateKey, tasks) {
+                if (!state.data[user]) state.data[user] = {};
+                state.data[user][dateKey] = tasks;
+                saveData();
+                triggerSync();
+            }
+
+            function addTask(user, dateKey, time, text) {
+                if (!text.trim()) return null;
+                const tasks = getTasks(user, dateKey);
+                const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                tasks.push({ id, time: time || '00:00', text: text.trim() });
+                setTasks(user, dateKey, tasks);
+                return id;
+            }
+
+            function deleteTask(user, dateKey, taskId) {
+                const tasks = getTasks(user, dateKey);
+                const filtered = tasks.filter(t => t.id !== taskId);
+                setTasks(user, dateKey, filtered);
+            }
+
+            function triggerSync() {
+                clearTimeout(syncTimeout);
+                syncStatus.textContent = '● Сохранение...';
+                syncStatus.classList.add('show');
+                syncTimeout = setTimeout(() => {
+                    syncStatus.textContent = '● Синхронизировано';
+                    setTimeout(() => {
+                        syncStatus.classList.remove('show');
+                    }, 1500);
+                }, 300);
+            }
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === STORAGE_KEY) {
+                    loadData();
+                    render();
+                    syncStatus.textContent = '● Обновлено';
+                    syncStatus.classList.add('show');
+                    setTimeout(() => {
+                        syncStatus.classList.remove('show');
+                    }, 1500);
+                }
+            });
+
+            function showDeleteModal(user, dateKey, taskId, taskText) {
+                deleteTarget = { user, dateKey, taskId, taskText };
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.id = 'deleteModal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-icon">🗑️</div>
+                        <h3>Удалить задачу?</h3>
+                        <p>Вы уверены, что хотите удалить эту задачу?</p>
+                        <div class="task-preview">${escapeHtml(taskText)}</div>
+                        <div class="modal-actions">
+                            <button class="btn-cancel" id="modalCancel">Отмена</button>
+                            <button class="btn-delete" id="modalConfirm">Удалить</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                document.getElementById('modalCancel').addEventListener('click', () => {
+                    closeModal();
+                });
+
+                document.getElementById('modalConfirm').addEventListener('click', () => {
+                    if (deleteTarget) {
+                        deleteTask(deleteTarget.user, deleteTarget.dateKey, deleteTarget.taskId);
+                        deleteTarget = null;
+                        closeModal();
+                        render();
+                    }
+                });
+
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeModal();
+                });
+            }
+
+            function closeModal() {
+                const modal = document.getElementById('deleteModal');
+                if (modal) modal.remove();
+                deleteTarget = null;
+            }
+
+            function render() {
+                renderUserSelector();
+                renderDateNav();
+                renderContent();
+            }
+
+            function renderUserSelector() {
+                userSelector.innerHTML = USER_NAMES.map((name, i) => `
+                    <button class="user-btn ${state.selectedUser === i ? 'active' : ''}" 
+                            data-user="${i}">
+                        <span class="color-dot" style="background:${COLORS[i]}"></span>
+                        ${name}
+                        ${state.selectedUser === i ? ' ✎' : ''}
+                    </button>
+                `).join('');
+
+                userSelector.querySelectorAll('.user-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.selectedUser = parseInt(btn.dataset.user);
+                        render();
+                    });
+                });
+            }
+
+            function renderDateNav() {
+                if (state.view === 'day') {
+                    dateDisplay.textContent = formatDateDisplay(state.currentDate);
+                } else {
+                    dateDisplay.textContent = formatWeekRange(state.currentDate);
+                }
+            }
+
+            function renderContent() {
+                if (state.view === 'day') {
+                    renderDayView();
+                } else {
+                    renderWeekView();
+                }
+            }
+
+            function renderDayView() {
+                const dateKey = formatDateKey(state.currentDate);
+                
+                let html = '<div class="day-view">';
+                
+                for (let u = 0; u < 3; u++) {
+                    const tasks = getTasks(u, dateKey);
+                    const isCurrentUser = u === state.selectedUser;
+                    
+                    html += `
+                        <div class="day-card">
+                            <div class="day-card-header">
+                                <div class="color-bar" style="background:${COLORS[u]}"></div>
+                                <span class="user-name">${USER_NAMES[u]}</span>
+                                <span class="badge">${isCurrentUser ? '✎ вы' : 'просмотр'}</span>
+                            </div>
+                            <div class="tasks" data-user="${u}" data-date="${dateKey}">
+                    `;
+                    
+                    if (tasks.length === 0) {
+                        html += `<div class="task-empty">Нет планов на этот день</div>`;
+                    } else {
+                        tasks.sort((a, b) => a.time.localeCompare(b.time));
+                        tasks.forEach(task => {
+                            html += `
+                                <div class="task-item" data-task-id="${task.id}">
+                                    <span class="task-time">${escapeHtml(task.time)}</span>
+                                    <span class="task-text">${escapeHtml(task.text)}</span>
+                                    ${isCurrentUser ? `
+                                        <div class="task-actions">
+                                            <button class="task-btn delete" data-action="delete" 
+                                                    data-task-id="${task.id}" 
+                                                    data-task-text="${escapeHtml(task.text)}">✕</button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    html += `</div>`;
+                    
+                    if (isCurrentUser) {
+                        html += `
+                            <div class="add-task-form" data-user="${u}" data-date="${dateKey}">
+                                <input type="time" class="task-time-input" value="12:00">
+                                <input type="text" class="task-text-input" placeholder="Что планируете?" maxlength="100">
+                                <button class="add-btn" data-action="add">+</button>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                html += '</div>';
+                content.innerHTML = html;
+                attachTaskEvents();
+            }
+
+            function renderWeekView() {
+                const weekDays = getWeekDays(state.currentDate);
+                const weekDayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+                
+                let html = '<div class="week-compact">';
+                
+                for (let u = 0; u < 3; u++) {
+                    const isCurrentUser = u === state.selectedUser;
+                    
+                    html += `
+                        <div class="week-card" data-user="${u}">
+                            <div class="week-header">
+                                <div class="color-bar" style="background:${COLORS[u]}"></div>
+                                <span class="user-name">${USER_NAMES[u]}</span>
+                                <span class="badge">${isCurrentUser ? '✎ вы' : 'просмотр'}</span>
+                            </div>
+                    `;
+                    
+                    // Строки для каждого дня недели
+                    weekDays.forEach((day, idx) => {
+                        const dateKey = formatDateKey(day);
+                        const tasks = getTasks(u, dateKey);
+                        const today = isToday(day);
+                        const dayName = weekDayNames[idx];
+                        const dayNum = day.getDate();
+                        
+                        html += `
+                            <div class="week-day-row" data-user="${u}" data-date="${dateKey}">
+                                <div class="day-label ${today ? 'today' : ''}">${dayName} ${dayNum}</div>
+                                <div class="day-tasks" data-user="${u}" data-date="${dateKey}">
+                        `;
+                        
+                        if (tasks.length === 0) {
+                            html += `<span class="week-empty-text">—</span>`;
+                        } else {
+                            tasks.sort((a, b) => a.time.localeCompare(b.time));
+                            tasks.forEach(task => {
+                                html += `
+                                    <span class="wtask">
+                                        <span class="wtask-time">${escapeHtml(task.time)}</span>
+                                        ${escapeHtml(task.text)}
+                                        ${isCurrentUser ? `
+                                            <button class="wtask-delete" data-action="delete" 
+                                                    data-task-id="${task.id}" 
+                                                    data-task-text="${escapeHtml(task.text)}">✕</button>
+                                        ` : ''}
+                                    </span>
+                                `;
+                            });
+                        }
+                        
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    // Форма добавления для выбранного пользователя
+                    if (isCurrentUser) {
+                        html += `
+                            <div class="week-add-form" data-user="${u}">
+                                <select class="wa-day-select">
+                                    ${weekDays.map((day, idx) => `
+                                        <option value="${formatDateKey(day)}">${weekDayNames[idx]} ${day.getDate()}</option>
+                                    `).join('')}
+                                </select>
+                                <input type="time" class="wa-time-input" value="12:00">
+                                <input type="text" class="wa-text-input" placeholder="План" maxlength="60">
+                                <button class="add-btn" data-action="add-week">+</button>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                html += '</div>';
+                content.innerHTML = html;
+                attachWeekEvents();
+            }
+
+            function attachTaskEvents() {
+                document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const taskId = btn.dataset.taskId;
+                        const taskText = btn.dataset.taskText || 'Задача';
+                        const tasksContainer = btn.closest('.tasks, .day-tasks');
+                        if (!tasksContainer) return;
+                        
+                        const user = parseInt(tasksContainer.dataset.user);
+                        const dateKey = tasksContainer.dataset.date;
+                        
+                        showDeleteModal(user, dateKey, taskId, taskText);
+                    });
+                });
+                
+                document.querySelectorAll('[data-action="add"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const form = btn.closest('.add-task-form');
+                        const timeInput = form.querySelector('.task-time-input');
+                        const textInput = form.querySelector('.task-text-input');
+                        const user = parseInt(form.dataset.user);
+                        const dateKey = form.dataset.date;
+                        
+                        const time = timeInput.value || '12:00';
+                        const text = textInput.value.trim();
+                        
+                        if (!text) {
+                            textInput.focus();
+                            textInput.style.borderColor = '#e74c3c';
+                            setTimeout(() => textInput.style.borderColor = '', 2000);
+                            return;
+                        }
+                        
+                        addTask(user, dateKey, time, text);
+                        render();
+                    });
+                });
+                
+                document.querySelectorAll('.task-text-input').forEach(input => {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const form = input.closest('.add-task-form');
+                            const addBtn = form.querySelector('[data-action="add"]');
+                            if (addBtn) addBtn.click();
+                        }
+                    });
+                });
+            }
+
+            function attachWeekEvents() {
+                // Удаление в недельном режиме
+                document.querySelectorAll('.wtask-delete').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const taskId = btn.dataset.taskId;
+                        const taskText = btn.dataset.taskText || 'Задача';
+                        const dayTasks = btn.closest('.day-tasks');
+                        if (!dayTasks) return;
+                        
+                        const user = parseInt(dayTasks.dataset.user);
+                        const dateKey = dayTasks.dataset.date;
+                        
+                        showDeleteModal(user, dateKey, taskId, taskText);
+                    });
+                });
+                
+                // Добавление в недельном режиме
+                document.querySelectorAll('[data-action="add-week"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const form = btn.closest('.week-add-form');
+                        const daySelect = form.querySelector('.wa-day-select');
+                        const timeInput = form.querySelector('.wa-time-input');
+                        const textInput = form.querySelector('.wa-text-input');
+                        const user = parseInt(form.dataset.user);
+                        
+                        const dateKey = daySelect.value;
+                        const time = timeInput.value || '12:00';
+                        const text = textInput.value.trim();
+                        
+                        if (!text) {
+                            textInput.focus();
+                            textInput.style.borderColor = '#e74c3c';
+                            setTimeout(() => textInput.style.borderColor = '', 2000);
+                            return;
+                        }
+                        
+                        addTask(user, dateKey, time, text);
+                        render();
+                    });
+                });
+                
+                document.querySelectorAll('.wa-text-input').forEach(input => {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const form = input.closest('.week-add-form');
+                            const addBtn = form.querySelector('[data-action="add-week"]');
+                            if (addBtn) addBtn.click();
+                        }
+                    });
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            document.getElementById('prevDate').addEventListener('click', () => {
+                if (state.view === 'day') {
+                    state.currentDate.setDate(state.currentDate.getDate() - 1);
+                } else {
+                    state.currentDate.setDate(state.currentDate.getDate() - 7);
+                }
+                render();
+            });
+
+            document.getElementById('nextDate').addEventListener('click', () => {
+                if (state.view === 'day') {
+                    state.currentDate.setDate(state.currentDate.getDate() + 1);
+                } else {
+                    state.currentDate.setDate(state.currentDate.getDate() + 7);
+                }
+                render();
+            });
+
+            document.getElementById('todayBtn').addEventListener('click', () => {
+                state.currentDate = new Date();
+                render();
+            });
+
+            document.getElementById('viewDay').addEventListener('click', () => {
+                state.view = 'day';
+                document.getElementById('viewDay').classList.add('active');
+                document.getElementById('viewWeek').classList.remove('active');
+                render();
+            });
+
+            document.getElementById('viewWeek').addEventListener('click', () => {
+                state.view = 'week';
+                document.getElementById('viewWeek').classList.add('active');
+                document.getElementById('viewDay').classList.remove('active');
+                render();
+            });
+
+            loadData();
+            render();
+            document.getElementById('viewDay').classList.add('active');
+
+        })();
+    </script>
+</body>
+</html>
