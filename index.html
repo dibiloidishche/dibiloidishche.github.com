@@ -12,19 +12,1234 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* ... весь ваш CSS остаётся без изменений ... */
-        /* (сохраните все стили из предыдущей версии) */
-        
-        /* Добавляем стиль для отметки "чужая задача" */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #D9ADD1;
+            --user1: #D9ADD1;
+            --user2: #E26728;
+            --user3: #CBCADC;
+            --text: #2d2d2d;
+            --text-light: #5a5a5a;
+            --card-bg: rgba(255, 255, 255, 0.88);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+            --font: 'Montserrat', sans-serif;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            touch-action: manipulation;
+        }
+
+        /* Фон с розами */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 182, 193, 0.25) 0%, transparent 30%),
+                radial-gradient(circle at 90% 80%, rgba(255, 182, 193, 0.20) 0%, transparent 35%),
+                radial-gradient(circle at 30% 70%, rgba(255, 182, 193, 0.18) 0%, transparent 25%),
+                radial-gradient(circle at 70% 30%, rgba(255, 182, 193, 0.15) 0%, transparent 30%),
+                repeating-conic-gradient(from 0deg, transparent 0deg, rgba(255, 182, 193, 0.05) 5deg, transparent 10deg),
+                repeating-conic-gradient(from 45deg, transparent 0deg, rgba(255, 182, 193, 0.04) 8deg, transparent 15deg);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .rose-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .rose-bg svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+
+        #app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: none;
+            flex-direction: column;
+            padding: 12px;
+            padding-top: calc(12px + var(--safe-top));
+            padding-bottom: calc(12px + var(--safe-bottom));
+            padding-left: calc(12px + var(--safe-left));
+            padding-right: calc(12px + var(--safe-right));
+            overflow: hidden;
+        }
+
+        #app.show {
+            display: flex;
+        }
+
+        /* Приветствие */
+        .welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(217, 173, 209, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .welcome-content {
+            text-align: center;
+            max-width: 340px;
+            width: 100%;
+        }
+
+        .welcome-content .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .welcome-content h1 {
+            font-family: var(--font);
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .welcome-content p {
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .welcome-content .welcome-btn {
+            padding: 14px 40px;
+            border: none;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .welcome-content .welcome-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Экран авторизации */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(217, 173, 209, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .auth-overlay.show {
+            display: flex;
+        }
+
+        .auth-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s ease;
+        }
+
+        .auth-content .auth-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .auth-content h2 {
+            font-family: var(--font);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .auth-content p {
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .auth-content input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.02);
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .auth-content input:focus {
+            outline: none;
+            border-color: #D9ADD1;
+            background: rgba(217, 173, 209, 0.05);
+        }
+
+        .auth-content .auth-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #D9ADD1;
+            color: white;
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            margin-bottom: 8px;
+        }
+
+        .auth-content .auth-btn:active {
+            transform: scale(0.95);
+        }
+
+        .auth-content .auth-btn.secondary {
+            background: transparent;
+            border: 1.5px solid #D9ADD1;
+            color: #D9ADD1;
+            margin-bottom: 0;
+        }
+
+        .auth-content .auth-btn.secondary:active {
+            background: rgba(217, 173, 209, 0.05);
+        }
+
+        .auth-content .auth-error {
+            color: #e74c3c;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            min-height: 20px;
+            font-family: var(--font);
+        }
+
+        .auth-content .auth-success {
+            color: #27ae60;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            min-height: 20px;
+            font-family: var(--font);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 4px 12px;
+            flex-shrink: 0;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-family: var(--font);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px 14px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .header-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .header-btn.active {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* User selector */
+        .user-selector {
+            display: flex;
+            gap: 8px;
+            padding: 4px 0 12px;
+            flex-shrink: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .user-selector::-webkit-scrollbar {
+            display: none;
+        }
+
+        .user-btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+
+        .user-btn:active {
+            transform: scale(0.95);
+        }
+
+        .user-btn.active {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .user-btn .color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-family: var(--font);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .logout-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Date navigation */
+        .date-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0 12px;
+            flex-shrink: 0;
+            justify-content: center;
+        }
+
+        .date-nav-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+
+        .date-nav-btn:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .date-display {
+            font-family: var(--font);
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            min-width: 120px;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .today-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+        }
+
+        .today-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Content area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+            margin: 0 -4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            scroll-behavior: smooth;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        /* Day view */
+        .day-view {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .day-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .day-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .day-card-header .color-bar {
+            width: 4px;
+            height: 28px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .day-card-header .user-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--font);
+        }
+
+        .day-card-header .badge {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            background: rgba(0, 0, 0, 0.04);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-family: var(--font);
+        }
+
+        /* Tasks list */
+        .tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            transition: all 0.2s;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .task-item .task-time {
+            font-size: 12px;
+            color: var(--text-light);
+            font-weight: 700;
+            min-width: 48px;
+            font-family: var(--font);
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .task-item .task-time .task-end-time {
+            font-weight: 500;
+            font-size: 10px;
+            color: var(--text-light);
+            opacity: 0.7;
+        }
+
+        .task-item .task-text {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-word;
+            font-family: var(--font);
+        }
+
+        .task-item .task-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .task-item .task-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(0, 0, 0, 0.04);
+            color: var(--text-light);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .task-item .task-btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .task-item .task-btn.delete:hover {
+            color: #e74c3c;
+        }
+
+        .task-empty {
+            text-align: center;
+            color: var(--text-light);
+            padding: 20px 0;
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.7;
+            font-family: var(--font);
+        }
+
+        /* Add task form */
+        .add-task-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-task-form .time-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .add-task-form .time-group span {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .add-task-form input[type="time"] {
+            padding: 10px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            width: 70px;
+            flex-shrink: 0;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .add-task-form input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            min-width: 80px;
+        }
+
+        .add-task-form input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .add-task-form .add-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .add-task-form .add-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Week view - компактная версия */
+        .week-compact {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .week-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .week-card .week-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .week-card .week-header .color-bar {
+            width: 4px;
+            height: 28px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .week-card .week-header .user-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--font);
+        }
+
+        .week-card .week-header .badge {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            background: rgba(0, 0, 0, 0.04);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-family: var(--font);
+        }
+
+        .week-day-row {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            padding: 4px 0;
+            min-height: 32px;
+        }
+
+        .week-day-row:last-child {
+            border-bottom: none;
+        }
+
+        .week-day-row .day-label {
+            min-width: 48px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            padding-right: 8px;
+        }
+
+        .week-day-row .day-label.today {
+            color: #e74c3c;
+        }
+
+        .week-day-row .day-tasks {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            padding: 2px 0;
+        }
+
+        .week-day-row .day-tasks .wtask {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.4);
+            padding: 2px 10px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-time {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-time .wtask-end {
+            font-weight: 500;
+            font-size: 8px;
+            opacity: 0.6;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-user-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-delete {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0 2px;
+            font-weight: 700;
+            touch-action: manipulation;
+        }
+
+        .week-day-row .day-tasks .wtask .wtask-delete:active {
+            transform: scale(0.8);
+        }
+
+        .week-day-row .day-tasks .week-empty-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-light);
+            opacity: 0.5;
+        }
+
+        /* Форма добавления в недельном виде - компактная */
+        .week-add-form {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .week-add-form .wa-day-select {
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            min-width: 60px;
+        }
+
+        .week-add-form .time-group {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .week-add-form .time-group span {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .week-add-form input[type="time"] {
+            padding: 6px 6px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            width: 60px;
+            flex-shrink: 0;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .week-add-form input[type="text"] {
+            flex: 1;
+            min-width: 60px;
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+        }
+
+        .week-add-form input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .week-add-form .add-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            flex-shrink: 0;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .week-add-form .add-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Модальное окно удаления */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+            text-align: center;
+        }
+
+        .modal-content .modal-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .modal-content h3 {
+            font-family: var(--font);
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .modal-content p {
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .modal-content .task-preview {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .modal-actions button:active {
+            transform: scale(0.95);
+        }
+
+        .modal-actions .btn-cancel {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--text);
+        }
+
+        .modal-actions .btn-cancel:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-actions .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .modal-actions .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        /* Responsive */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #app {
+                padding: 8px 16px;
+                padding-top: calc(8px + var(--safe-top));
+                padding-bottom: calc(8px + var(--safe-bottom));
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .header-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .user-btn {
+                padding: 6px 14px;
+                font-size: 14px;
+            }
+            .date-display {
+                font-size: 16px;
+                min-width: 80px;
+            }
+            .day-card {
+                padding: 12px;
+            }
+            .week-card {
+                padding: 12px;
+            }
+            .day-card-header .user-name {
+                font-size: 16px;
+            }
+            .task-item {
+                padding: 6px 10px;
+            }
+            .task-item .task-text {
+                font-size: 13px;
+            }
+            .add-task-form input {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            .add-task-form input[type="time"] {
+                width: 60px;
+                padding: 6px 6px;
+                font-size: 11px;
+            }
+            .week-day-row .day-label {
+                min-width: 36px;
+                font-size: 11px;
+            }
+            .week-day-row .day-tasks .wtask {
+                font-size: 11px;
+                padding: 1px 8px;
+            }
+            .date-nav {
+                padding: 2px 0 8px;
+            }
+            .date-nav-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+            .content {
+                padding-bottom: 4px;
+            }
+            .welcome-content h1 {
+                font-size: 26px;
+            }
+            .welcome-content .welcome-icon {
+                font-size: 48px;
+            }
+            .auth-content {
+                padding: 20px;
+            }
+            .auth-content h2 {
+                font-size: 20px;
+            }
+        }
+
+        @media (min-width: 600px) {
+            .day-view {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .week-compact {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .header h1 {
+                font-size: 34px;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .day-view {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .week-compact {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            #app {
+                padding: 20px 32px;
+                padding-top: calc(20px + var(--safe-top));
+                padding-bottom: calc(20px + var(--safe-bottom));
+            }
+            .header h1 {
+                font-size: 40px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .week-compact {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .sync-status {
+            position: fixed;
+            bottom: calc(12px + var(--safe-bottom));
+            right: calc(12px + var(--safe-right));
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: var(--font);
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sync-status.show {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-light);
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Стиль для задач других пользователей */
         .task-item.other-user {
             opacity: 0.85;
-            border-left: 3px solid #ccc;
         }
-        
+
         .task-item.other-user .task-actions {
             display: none;
         }
-        
+
         .task-item .task-user-label {
             font-size: 11px;
             font-weight: 600;
@@ -35,7 +1250,7 @@
             margin-right: 8px;
             white-space: nowrap;
         }
-        
+
         .task-item .task-user-dot {
             width: 8px;
             height: 8px;
@@ -47,35 +1262,126 @@
     </style>
 </head>
 <body>
-    <!-- ... остальной HTML остаётся без изменений ... -->
-    <!-- (сохраните всю разметку из предыдущей версии) -->
+    <div class="rose-bg">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <g opacity="0.3">
+                <circle cx="15" cy="15" r="8" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+                <circle cx="15" cy="15" r="5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <circle cx="15" cy="15" r="2" fill="rgba(255,255,255,0.2)"/>
+                <path d="M15 7 C 18 10, 20 15, 15 20 C 10 15, 12 10, 15 7" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <path d="M7 15 C 10 12, 15 10, 20 15 C 15 20, 10 18, 7 15" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <path d="M10 10 C 13 13, 17 13, 20 10" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                
+                <circle cx="85" cy="25" r="10" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <circle cx="85" cy="25" r="6" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="85" cy="25" r="3" fill="rgba(255,255,255,0.15)"/>
+                <path d="M85 15 C 90 18, 93 23, 85 30 C 77 23, 80 18, 85 15" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                
+                <circle cx="50" cy="85" r="12" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/>
+                <circle cx="50" cy="85" r="7" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="50" cy="85" r="3" fill="rgba(255,255,255,0.1)"/>
+                <path d="M50 73 C 58 78, 62 85, 50 92 C 38 85, 42 78, 50 73" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <path d="M38 85 C 42 80, 48 77, 55 80 C 58 85, 55 92, 48 95" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+                <circle cx="90" cy="80" r="7" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="90" cy="80" r="4" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+                <path d="M90 73 C 94 76, 96 80, 90 85 C 84 80, 86 76, 90 73" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+                <circle cx="10" cy="70" r="6" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+                <circle cx="10" cy="70" r="3" fill="rgba(255,255,255,0.1)"/>
+                <path d="M10 64 C 14 67, 15 70, 10 74 C 5 70, 6 67, 10 64" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+                <ellipse cx="25" cy="30" rx="8" ry="3" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" transform="rotate(-30 25 30)"/>
+                <ellipse cx="70" cy="70" rx="6" ry="2.5" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.5" transform="rotate(20 70 70)"/>
+                <ellipse cx="35" cy="75" rx="7" ry="2.5" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5" transform="rotate(-15 35 75)"/>
+                <ellipse cx="75" cy="45" rx="5" ry="2" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5" transform="rotate(40 75 45)"/>
+            </g>
+        </svg>
+    </div>
+
+    <!-- Приветствие -->
+    <div class="welcome-overlay" id="welcomeOverlay">
+        <div class="welcome-content">
+            <div class="welcome-icon">🌹</div>
+            <h1>Хелёёёёу!</h1>
+            <p>Планируйте свои дела,<br>всем добра и позитива ✨</p>
+            <button class="welcome-btn" id="welcomeBtn">Начать</button>
+        </div>
+    </div>
+
+    <!-- Экран авторизации -->
+    <div class="auth-overlay show" id="authOverlay">
+        <div class="auth-content">
+            <div class="auth-icon">🌹</div>
+            <h2>Добро пожаловать!</h2>
+            <p>Войдите или зарегистрируйтесь,<br>чтобы начать планировать</p>
+            <div class="auth-error" id="authError"></div>
+            <div class="auth-success" id="authSuccess"></div>
+            <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
+            <input id="authPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+            <button class="auth-btn" id="signInBtn">Войти</button>
+            <button class="auth-btn secondary" id="signUpBtn">Зарегистрироваться</button>
+        </div>
+    </div>
+
+    <div id="app">
+        <div class="header">
+            <h1>🌹 Планер</h1>
+            <div class="header-controls">
+                <button class="header-btn active" id="viewDay" data-view="day">День</button>
+                <button class="header-btn" id="viewWeek" data-view="week">Неделя</button>
+            </div>
+        </div>
+
+        <div class="user-selector" id="userSelector">
+            <!-- Кнопки выбора пользователя -->
+        </div>
+
+        <div class="date-nav">
+            <button class="date-nav-btn" id="prevDate">‹</button>
+            <span class="date-display" id="dateDisplay"></span>
+            <button class="date-nav-btn" id="nextDate">›</button>
+            <button class="today-btn" id="todayBtn">Сегодня</button>
+        </div>
+
+        <div class="content" id="content">
+            <div class="loading-spinner">Загрузка...</div>
+        </div>
+
+        <div class="sync-status" id="syncStatus">● Синхронизировано</div>
+    </div>
+
+    <!-- Подключение библиотеки Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         (function() {
             'use strict';
 
-            // === КОНФИГУРАЦИЯ ===
+            // === КОНФИГУРАЦИЯ SUPABASE ===
             const SUPABASE_URL = 'https://hrwoenkrfducxuduuvfr.supabase.co';
             const SUPABASE_KEY = 'sb_publishable_zwmmH6vHObejL0S_z7MdSg_Vq303EH4';
 
-            const COLORS = ['#D9ADD1', '#E26728', '#CBCADC'];
-            const USER_NAMES = ['Лизик', 'Дашик', 'Катик'];
-
-            // === ИНИЦИАЛИЗАЦИЯ ===
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+            // === СОСТОЯНИЕ ===
             let state = {
                 view: 'day',
-                selectedUser: 0,
                 currentDate: new Date(),
-                tasks: [], // Все задачи (всех пользователей)
+                tasks: [],
+                users: [
+                    { id: null, name: 'Лизик', color: '#D9ADD1' },
+                    { id: null, name: 'Дашик', color: '#E26728' },
+                    { id: null, name: 'Катик', color: '#CBCADC' }
+                ],
+                selectedUserIndex: 0,
                 currentUser: null,
-                isAuthenticated: false
+                isAuthenticated: false,
+                userEmails: {} // Соответствие email -> index
             };
 
             let deleteTarget = null;
             let syncTimeout = null;
             let supabaseChannel = null;
+            let supabase = null;
 
             // === DOM ===
             const $ = id => document.getElementById(id);
@@ -83,9 +1389,19 @@
             const dateDisplay = $('dateDisplay');
             const content = $('content');
             const syncStatus = $('syncStatus');
-            const authOverlay = $('authOverlay');
             const welcomeOverlay = $('welcomeOverlay');
+            const authOverlay = $('authOverlay');
             const authError = $('authError');
+            const authSuccess = $('authSuccess');
+            const app = $('app');
+
+            // === ИНИЦИАЛИЗАЦИЯ SUPABASE ===
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Supabase инициализирован');
+            } catch (error) {
+                console.error('❌ Ошибка инициализации Supabase:', error);
+            }
 
             // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
             function formatDateKey(date) {
@@ -150,52 +1466,141 @@
                 }, 1500);
             }
 
-            function getUserIdByIndex(index) {
-                // В реальном приложении здесь нужно получить реальный ID пользователя из базы
-                // Для демонстрации используем фиктивные UUID
-                const fakeIds = [
-                    '11111111-1111-1111-1111-111111111111',
-                    '22222222-2222-2222-2222-222222222222',
-                    '33333333-3333-3333-3333-333333333333'
-                ];
-                return fakeIds[index] || fakeIds[0];
+            // === АВТОРИЗАЦИЯ ===
+            async function checkAuth() {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    
+                    if (user && session) {
+                        state.currentUser = user;
+                        state.isAuthenticated = true;
+                        
+                        // Определяем, какой пользователь вошёл
+                        const email = user.email;
+                        if (email) {
+                            // Ищем соответствие email -> индекс
+                            const index = state.userEmails[email];
+                            if (index !== undefined) {
+                                state.selectedUserIndex = index;
+                            } else {
+                                // Если email не найден, добавляем нового пользователя
+                                const newIndex = state.users.length;
+                                const name = email.split('@')[0] || 'Пользователь';
+                                const colors = ['#D9ADD1', '#E26728', '#CBCADC', '#A8D5BA', '#F7DC6F', '#85C1E9'];
+                                state.users.push({
+                                    id: user.id,
+                                    name: name,
+                                    color: colors[newIndex % colors.length]
+                                });
+                                state.userEmails[email] = newIndex;
+                                state.selectedUserIndex = newIndex;
+                            }
+                        }
+                        
+                        authOverlay.classList.remove('show');
+                        app.classList.add('show');
+                        
+                        // Подписываемся на изменения
+                        subscribeToTasks();
+                        render();
+                        showSyncStatus('✅ Добро пожаловать, ' + (state.users[state.selectedUserIndex]?.name || '') + '!');
+                        return true;
+                    } else {
+                        state.currentUser = null;
+                        state.isAuthenticated = false;
+                        app.classList.remove('show');
+                        authOverlay.classList.add('show');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Ошибка проверки авторизации:', error);
+                    return false;
+                }
+            }
+
+            async function signIn(email, password) {
+                authError.textContent = '';
+                authSuccess.textContent = '';
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    await checkAuth();
+                } catch (error) {
+                    authError.textContent = '❌ ' + error.message;
+                    console.error('Ошибка входа:', error);
+                }
+            }
+
+            async function signUp(email, password) {
+                authError.textContent = '';
+                authSuccess.textContent = '';
+                try {
+                    const { data, error } = await supabase.auth.signUp({ 
+                        email, 
+                        password,
+                        options: {
+                            emailRedirectTo: window.location.origin
+                        }
+                    });
+                    if (error) throw error;
+                    
+                    if (data.user?.identities?.length === 0) {
+                        authError.textContent = '❌ Этот email уже зарегистрирован';
+                        return;
+                    }
+                    
+                    authSuccess.textContent = '✅ Проверьте почту для подтверждения!';
+                    setTimeout(() => {
+                        authSuccess.textContent = '';
+                    }, 5000);
+                } catch (error) {
+                    authError.textContent = '❌ ' + error.message;
+                    console.error('Ошибка регистрации:', error);
+                }
+            }
+
+            async function signOut() {
+                try {
+                    if (supabaseChannel) {
+                        supabaseChannel.unsubscribe();
+                        supabaseChannel = null;
+                    }
+                    await supabase.auth.signOut();
+                    state.currentUser = null;
+                    state.isAuthenticated = false;
+                    state.tasks = [];
+                    app.classList.remove('show');
+                    authOverlay.classList.add('show');
+                    showSyncStatus('👋 До свидания!');
+                } catch (error) {
+                    console.error('Ошибка выхода:', error);
+                }
             }
 
             // === РАБОТА С БАЗОЙ ДАННЫХ ===
-            async function loadAllTasksForDate(dateKey) {
-                if (!state.currentUser) return [];
-
-                try {
-                    // Загружаем ВСЕ задачи на эту дату (без фильтра по user_id)
-                    const { data, error } = await supabase
-                        .from('tasks')
-                        .select('*')
-                        .eq('date_key', dateKey)
-                        .order('time_start');
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    console.error('Ошибка загрузки задач:', error);
-                    showSyncStatus('❌ Ошибка загрузки');
+            async function loadTasks(dateKey, weekMode = false) {
+                if (!supabase || !state.currentUser) {
+                    console.warn('Supabase не инициализирован или пользователь не авторизован');
                     return [];
                 }
-            }
-
-            async function loadAllTasksForWeek(dateKey) {
-                if (!state.currentUser) return [];
 
                 try {
-                    // Загружаем ВСЕ задачи на неделю (без фильтра по user_id)
-                    const weekDays = getWeekDays(new Date(dateKey));
-                    const dateKeys = weekDays.map(d => formatDateKey(d));
+                    let query = supabase
+                        .from('tasks')
+                        .select('*')
+                        .order('time_start');
+
+                    if (weekMode) {
+                        const weekDays = getWeekDays(new Date(dateKey));
+                        const dateKeys = weekDays.map(d => formatDateKey(d));
+                        query = query.in('date_key', dateKeys);
+                    } else {
+                        query = query.eq('date_key', dateKey);
+                    }
+
+                    const { data, error } = await query;
                     
-                    const { data, error } = await supabase
-                        .from('tasks')
-                        .select('*')
-                        .in('date_key', dateKeys)
-                        .order('time_start');
-
                     if (error) throw error;
                     return data || [];
                 } catch (error) {
@@ -205,14 +1610,18 @@
                 }
             }
 
-            async function addTaskToSupabase(dateKey, timeStart, timeEnd, text) {
-                if (!state.currentUser || !text.trim()) return null;
+            async function addTask(dateKey, timeStart, timeEnd, text) {
+                if (!supabase || !state.currentUser || !text.trim()) return null;
+
+                const userId = state.currentUser.id;
+                const userIndex = state.selectedUserIndex;
 
                 try {
                     const { data, error } = await supabase
                         .from('tasks')
                         .insert([{
-                            user_id: state.currentUser.id,
+                            user_id: userId,
+                            user_index: userIndex,
                             date_key: dateKey,
                             time_start: timeStart || '12:00',
                             time_end: timeEnd || '',
@@ -231,15 +1640,15 @@
                 }
             }
 
-            async function deleteTaskFromSupabase(taskId) {
-                if (!state.currentUser || !taskId) return false;
+            async function deleteTask(taskId) {
+                if (!supabase || !state.currentUser || !taskId) return false;
 
                 try {
                     const { error } = await supabase
                         .from('tasks')
                         .delete()
                         .eq('id', taskId)
-                        .eq('user_id', state.currentUser.id); // Важно: только свои задачи!
+                        .eq('user_id', state.currentUser.id);
 
                     if (error) throw error;
                     
@@ -258,9 +1667,8 @@
                     supabaseChannel.unsubscribe();
                 }
 
-                if (!state.currentUser) return;
+                if (!supabase || !state.currentUser) return;
 
-                // Подписываемся на ВСЕ изменения (без фильтра по user_id)
                 supabaseChannel = supabase
                     .channel('tasks-changes')
                     .on(
@@ -271,101 +1679,14 @@
                             table: 'tasks'
                         },
                         async (payload) => {
-                            console.log('Изменение в базе:', payload);
+                            console.log('🔄 Изменение в базе:', payload);
                             render();
                             showSyncStatus('🔄 Обновлено');
                         }
                     )
                     .subscribe((status) => {
-                        console.log('Подписка на изменения:', status);
+                        console.log('📡 Подписка на изменения:', status);
                     });
-            }
-
-            // === АВТОРИЗАЦИЯ ===
-            async function checkAuth() {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const { data: { user } } = await supabase.auth.getUser();
-                    
-                    if (user && session) {
-                        state.currentUser = user;
-                        state.isAuthenticated = true;
-                        subscribeToTasks();
-                        authOverlay.classList.remove('show');
-                        document.getElementById('app').style.display = 'flex';
-                        render();
-                        return true;
-                    } else {
-                        state.currentUser = null;
-                        state.isAuthenticated = false;
-                        document.getElementById('app').style.display = 'none';
-                        authOverlay.classList.add('show');
-                        return false;
-                    }
-                } catch (error) {
-                    console.error('Ошибка проверки авторизации:', error);
-                    return false;
-                }
-            }
-
-            async function signIn(email, password) {
-                authError.textContent = '';
-                try {
-                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                    if (error) throw error;
-                    await checkAuth();
-                    showSyncStatus('✅ Добро пожаловать!');
-                } catch (error) {
-                    authError.textContent = '❌ ' + error.message;
-                    console.error('Ошибка входа:', error);
-                }
-            }
-
-            async function signUp(email, password) {
-                authError.textContent = '';
-                try {
-                    const { data, error } = await supabase.auth.signUp({ 
-                        email, 
-                        password,
-                        options: {
-                            emailRedirectTo: window.location.origin
-                        }
-                    });
-                    if (error) throw error;
-                    
-                    if (data.user?.identities?.length === 0) {
-                        authError.textContent = '❌ Этот email уже зарегистрирован';
-                        return;
-                    }
-                    
-                    authError.textContent = '✅ Проверьте почту для подтверждения!';
-                    authError.style.color = '#27ae60';
-                    setTimeout(() => {
-                        authError.textContent = '';
-                        authError.style.color = '#e74c3c';
-                    }, 5000);
-                } catch (error) {
-                    authError.textContent = '❌ ' + error.message;
-                    console.error('Ошибка регистрации:', error);
-                }
-            }
-
-            async function signOut() {
-                try {
-                    if (supabaseChannel) {
-                        supabaseChannel.unsubscribe();
-                        supabaseChannel = null;
-                    }
-                    await supabase.auth.signOut();
-                    state.currentUser = null;
-                    state.isAuthenticated = false;
-                    state.tasks = [];
-                    document.getElementById('app').style.display = 'none';
-                    authOverlay.classList.add('show');
-                    showSyncStatus('👋 До свидания!');
-                } catch (error) {
-                    console.error('Ошибка выхода:', error);
-                }
             }
 
             // === ОТРИСОВКА ===
@@ -381,19 +1702,41 @@
                     return;
                 }
 
-                const email = state.currentUser.email || 'Пользователь';
-                const displayName = email.split('@')[0] || email;
+                let html = '';
                 
-                userSelector.innerHTML = `
-                    <button class="user-btn active">
-                        <span class="color-dot" style="background:#D9ADD1"></span>
-                        👤 ${escapeHtml(displayName)}
+                // Кнопки пользователей
+                state.users.forEach((user, index) => {
+                    const isCurrent = index === state.selectedUserIndex;
+                    html += `
+                        <button class="user-btn ${isCurrent ? 'active' : ''}" 
+                                data-user-index="${index}">
+                            <span class="color-dot" style="background:${user.color}"></span>
+                            ${escapeHtml(user.name)}
+                            ${isCurrent ? ' ✎' : ''}
+                        </button>
+                    `;
+                });
+                
+                // Кнопка выхода
+                html += `
+                    <button class="user-btn" style="border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);">
+                        <span class="color-dot" style="background:transparent;border:1px solid rgba(255,255,255,0.3);"></span>
+                        <span style="font-weight:400;font-size:13px;">${escapeHtml(state.currentUser.email || '')}</span>
                         <button class="logout-btn" id="logoutBtn">🚪</button>
                     </button>
-                    <span style="color:rgba(255,255,255,0.6);font-size:13px;display:flex;align-items:center;padding:0 8px;">
-                        👀 вижу всех
-                    </span>
                 `;
+                
+                userSelector.innerHTML = html;
+
+                userSelector.querySelectorAll('[data-user-index]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const index = parseInt(btn.dataset.userIndex);
+                        if (state.selectedUserIndex !== index) {
+                            state.selectedUserIndex = index;
+                            render();
+                        }
+                    });
+                });
 
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) {
@@ -425,32 +1768,24 @@
             function renderDayView() {
                 const dateKey = formatDateKey(state.currentDate);
                 
-                loadAllTasksForDate(dateKey).then(tasks => {
-                    state.tasks = tasks;
-                    
-                    // Группируем задачи по пользователям
-                    const grouped = {};
-                    tasks.forEach(task => {
-                        if (!grouped[task.user_id]) grouped[task.user_id] = [];
-                        grouped[task.user_id].push(task);
-                    });
+                loadTasks(dateKey).then(allTasks => {
+                    state.tasks = allTasks;
                     
                     let html = '<div class="day-view">';
                     
-                    // Показываем всех пользователей (3 штуки)
-                    for (let u = 0; u < 3; u++) {
-                        const userId = getUserIdByIndex(u);
-                        const userTasks = grouped[userId] || [];
-                        const isCurrentUser = state.currentUser && state.currentUser.id === userId;
+                    for (let u = 0; u < state.users.length; u++) {
+                        const user = state.users[u];
+                        const userTasks = allTasks.filter(t => t.user_index === u);
+                        const isCurrentUser = u === state.selectedUserIndex;
                         
                         html += `
                             <div class="day-card">
                                 <div class="day-card-header">
-                                    <div class="color-bar" style="background:${COLORS[u]}"></div>
-                                    <span class="user-name">${escapeHtml(USER_NAMES[u])}</span>
+                                    <div class="color-bar" style="background:${user.color}"></div>
+                                    <span class="user-name">${escapeHtml(user.name)}</span>
                                     <span class="badge">${isCurrentUser ? '✎ вы' : '👀 просмотр'}</span>
                                 </div>
-                                <div class="tasks" data-date="${dateKey}" data-user="${u}">
+                                <div class="tasks" data-date="${dateKey}">
                         `;
                         
                         if (userTasks.length === 0) {
@@ -462,14 +1797,13 @@
                                     `${escapeHtml(task.time_start)}–${escapeHtml(task.time_end)}` : 
                                     escapeHtml(task.time_start);
                                 
-                                // Только свой задачи можно редактировать
-                                const canEdit = isCurrentUser;
+                                const isOwn = task.user_id === state.currentUser.id;
                                 
                                 html += `
-                                    <div class="task-item ${!canEdit ? 'other-user' : ''}" data-task-id="${task.id}">
+                                    <div class="task-item ${!isOwn ? 'other-user' : ''}" data-task-id="${task.id}">
                                         <span class="task-time">${timeDisplay}</span>
                                         <span class="task-text">${escapeHtml(task.text)}</span>
-                                        ${canEdit ? `
+                                        ${isOwn ? `
                                             <div class="task-actions">
                                                 <button class="task-btn delete" data-action="delete" 
                                                         data-task-id="${task.id}" 
@@ -507,36 +1841,35 @@
             function renderWeekView() {
                 const weekDays = getWeekDays(state.currentDate);
                 const weekDayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-                const dateKeys = weekDays.map(d => formatDateKey(d));
+                const dateKey = formatDateKey(state.currentDate);
                 
-                loadAllTasksForWeek(formatDateKey(state.currentDate)).then(tasks => {
-                    state.tasks = tasks;
+                loadTasks(dateKey, true).then(allTasks => {
+                    state.tasks = allTasks;
                     
                     let html = '<div class="week-compact">';
                     
-                    // Показываем всех пользователей (3 штуки)
-                    for (let u = 0; u < 3; u++) {
-                        const userId = getUserIdByIndex(u);
-                        const isCurrentUser = state.currentUser && state.currentUser.id === userId;
+                    for (let u = 0; u < state.users.length; u++) {
+                        const user = state.users[u];
+                        const isCurrentUser = u === state.selectedUserIndex;
                         
                         html += `
                             <div class="week-card">
                                 <div class="week-header">
-                                    <div class="color-bar" style="background:${COLORS[u]}"></div>
-                                    <span class="user-name">${escapeHtml(USER_NAMES[u])}</span>
+                                    <div class="color-bar" style="background:${user.color}"></div>
+                                    <span class="user-name">${escapeHtml(user.name)}</span>
                                     <span class="badge">${isCurrentUser ? '✎ вы' : '👀 просмотр'}</span>
                                 </div>
                         `;
                         
                         weekDays.forEach((day, idx) => {
-                            const dateKey = formatDateKey(day);
-                            const dayTasks = tasks.filter(t => t.date_key === dateKey && t.user_id === userId);
+                            const dayKey = formatDateKey(day);
+                            const dayTasks = allTasks.filter(t => t.date_key === dayKey && t.user_index === u);
                             const today = isToday(day);
                             const dayName = weekDayNames[idx];
                             const dayNum = day.getDate();
                             
                             html += `
-                                <div class="week-day-row" data-date="${dateKey}">
+                                <div class="week-day-row" data-date="${dayKey}">
                                     <div class="day-label ${today ? 'today' : ''}">${dayName} ${dayNum}</div>
                                     <div class="day-tasks">
                             `;
@@ -549,13 +1882,13 @@
                                     const timeDisplay = task.time_end ? 
                                         `${escapeHtml(task.time_start)}–${escapeHtml(task.time_end)}` : 
                                         escapeHtml(task.time_start);
-                                    const canEdit = isCurrentUser;
+                                    const isOwn = task.user_id === state.currentUser.id;
                                     
                                     html += `
                                         <span class="wtask">
                                             <span class="wtask-time">${timeDisplay}</span>
                                             ${escapeHtml(task.text)}
-                                            ${canEdit ? `
+                                            ${isOwn ? `
                                                 <button class="wtask-delete" data-action="delete" 
                                                         data-task-id="${task.id}" 
                                                         data-task-text="${escapeHtml(task.text)}">✕</button>
@@ -629,7 +1962,7 @@
                             return;
                         }
                         
-                        await addTaskToSupabase(dateKey, start, end, text);
+                        await addTask(dateKey, start, end, text);
                         render();
                     });
                 });
@@ -675,7 +2008,7 @@
                             return;
                         }
                         
-                        await addTaskToSupabase(dateKey, start, end, text);
+                        await addTask(dateKey, start, end, text);
                         render();
                     });
                 });
@@ -718,7 +2051,7 @@
 
                 document.getElementById('modalConfirm').addEventListener('click', async () => {
                     if (deleteTarget) {
-                        await deleteTaskFromSupabase(deleteTarget);
+                        await deleteTask(deleteTarget);
                         deleteTarget = null;
                         closeModal();
                         render();
@@ -821,7 +2154,7 @@
             });
 
             // === ИНИЦИАЛИЗАЦИЯ ===
-            document.getElementById('app').style.display = 'none';
+            // Проверяем авторизацию при загрузке
             checkAuth();
 
         })();
