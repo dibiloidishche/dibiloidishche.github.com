@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -192,7 +191,7 @@
             background: white;
             border-radius: 20px;
             padding: 30px;
-            max-width: 340px;
+            max-width: 380px;
             width: 100%;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -1170,6 +1169,7 @@
             <div class="auth-success" id="authSuccess"></div>
             <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
             <input id="authPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+            <input id="authName" type="text" placeholder="Ваше имя (как вас видеть)" autocomplete="name">
             <button class="auth-btn" id="signInBtn">Войти</button>
             <button class="auth-btn secondary" id="signUpBtn">Зарегистрироваться</button>
         </div>
@@ -1211,15 +1211,10 @@
             view: 'day',
             currentDate: new Date(),
             tasks: [],
-            users: [
-                { id: null, name: 'Лизик', color: '#D9ADD1' },
-                { id: null, name: 'Дашик', color: '#E26728' },
-                { id: null, name: 'Катик', color: '#CBCADC' }
-            ],
-            selectedUserIndex: 0,
+            users: [], // Заполняется из базы данных
+            selectedUser: null, // Текущий выбранный пользователь
             currentUser: null,
-            isAuthenticated: false,
-            userEmails: {}
+            isAuthenticated: false
         };
 
         let deleteTarget = null;
@@ -1296,6 +1291,7 @@
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -1310,6 +1306,68 @@
             }, 1500);
         }
 
+        function getRandomColor() {
+            const colors = ['#D9ADD1', '#E26728', '#CBCADC', '#A8D5BA', '#F7DC6F', '#85C1E9', '#F1948A', '#82E0AA', '#85C1E9', '#F8C471'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // === РАБОТА С ПОЛЬЗОВАТЕЛЯМИ ===
+        async function loadUsers() {
+            if (!supabase) return [];
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .order('name');
+                
+                if (error) throw error;
+                return data || [];
+            } catch (error) {
+                console.error('Ошибка загрузки пользователей:', error);
+                return [];
+            }
+        }
+
+        async function createUser(userId, name) {
+            if (!supabase || !userId || !name) return null;
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([{
+                        id: userId,
+                        name: name.trim(),
+                        color: getRandomColor()
+                    }])
+                    .select();
+                
+                if (error) throw error;
+                return data[0];
+            } catch (error) {
+                console.error('Ошибка создания пользователя:', error);
+                return null;
+            }
+        }
+
+        async function getUserProfile(userId) {
+            if (!supabase || !userId) return null;
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+                
+                if (error) throw error;
+                return data;
+            } catch (error) {
+                console.error('Ошибка получения профиля:', error);
+                return null;
+            }
+        }
+
         // === АВТОРИЗАЦИЯ ===
         async function checkAuth() {
             try {
@@ -1320,22 +1378,31 @@
                     state.currentUser = user;
                     state.isAuthenticated = true;
                     
-                    const email = user.email;
-                    if (email) {
-                        const index = state.userEmails[email];
-                        if (index !== undefined) {
-                            state.selectedUserIndex = index;
-                        } else {
-                            const newIndex = state.users.length;
-                            const name = email.split('@')[0] || 'Пользователь';
-                            const colors = ['#D9ADD1', '#E26728', '#CBCADC', '#A8D5BA', '#F7DC6F', '#85C1E9'];
-                            state.users.push({
-                                id: user.id,
-                                name: name,
-                                color: colors[newIndex % colors.length]
-                            });
-                            state.userEmails[email] = newIndex;
-                            state.selectedUserIndex = newIndex;
+                    // Загружаем всех пользователей
+                    const allUsers = await loadUsers();
+                    state.users = allUsers;
+                    
+                    // Проверяем, есть ли профиль у текущего пользователя
+                    let userProfile = await getUserProfile(user.id);
+                    
+                    if (!userProfile) {
+                        // Если нет профиля — создаём с именем из email (временное)
+                        const tempName = user.email ? user.email.split('@')[0] : 'Пользователь';
+                        userProfile = await createUser(user.id, tempName);
+                        if (userProfile) {
+                            state.users = await loadUsers();
+                        }
+                    }
+                    
+                    // Находим выбранного пользователя
+                    if (userProfile) {
+                        state.selectedUser = userProfile;
+                    } else {
+                        // Если профиль не создался — пробуем ещё раз
+                        const newProfile = await createUser(user.id, 'Пользователь');
+                        if (newProfile) {
+                            state.selectedUser = newProfile;
+                            state.users = await loadUsers();
                         }
                     }
                     
@@ -1344,11 +1411,13 @@
                     
                     subscribeToTasks();
                     render();
-                    showSyncStatus('✅ Добро пожаловать, ' + (state.users[state.selectedUserIndex]?.name || '') + '!');
+                    showSyncStatus('✅ Добро пожаловать, ' + (state.selectedUser?.name || '') + '!');
                     return true;
                 } else {
                     state.currentUser = null;
                     state.isAuthenticated = false;
+                    state.users = [];
+                    state.selectedUser = null;
                     app.classList.remove('show');
                     authOverlay.classList.add('show');
                     return false;
@@ -1372,9 +1441,15 @@
             }
         }
 
-        async function signUp(email, password) {
+        async function signUp(email, password, name) {
             authError.textContent = '';
             authSuccess.textContent = '';
+            
+            if (!name.trim()) {
+                authError.textContent = '❌ Введите ваше имя';
+                return;
+            }
+            
             try {
                 const { data, error } = await supabase.auth.signUp({ 
                     email, 
@@ -1388,6 +1463,11 @@
                 if (data.user?.identities?.length === 0) {
                     authError.textContent = '❌ Этот email уже зарегистрирован';
                     return;
+                }
+                
+                // Создаём профиль пользователя
+                if (data.user) {
+                    await createUser(data.user.id, name.trim());
                 }
                 
                 authSuccess.textContent = '✅ Проверьте почту для подтверждения!';
@@ -1409,6 +1489,8 @@
                 await supabase.auth.signOut();
                 state.currentUser = null;
                 state.isAuthenticated = false;
+                state.users = [];
+                state.selectedUser = null;
                 state.tasks = [];
                 app.classList.remove('show');
                 authOverlay.classList.add('show');
@@ -1418,7 +1500,7 @@
             }
         }
 
-        // === РАБОТА С БАЗОЙ ДАННЫХ ===
+        // === РАБОТА С ЗАДАЧАМИ ===
         async function loadTasks(dateKey, weekMode = false) {
             if (!supabase || !state.currentUser) {
                 console.warn('Supabase не инициализирован или пользователь не авторизован');
@@ -1453,11 +1535,12 @@
         async function addTask(dateKey, timeStart, timeEnd, text) {
             if (!supabase || !state.currentUser || !text.trim()) {
                 console.error('❌ Ошибка: Supabase или пользователь не инициализирован');
+                showSyncStatus('❌ Ошибка: войдите в аккаунт');
                 return null;
             }
 
             const userId = state.currentUser.id;
-            const userIndex = state.selectedUserIndex;
+            const userIndex = state.users.findIndex(u => u.id === userId);
 
             console.log('📝 Добавление задачи:', {
                 user_id: userId,
@@ -1554,25 +1637,27 @@
         }
 
         function renderUserSelector() {
-            if (!state.currentUser) {
+            if (!state.currentUser || state.users.length === 0) {
                 userSelector.innerHTML = '';
                 return;
             }
 
             let html = '';
             
-            state.users.forEach((user, index) => {
-                const isCurrent = index === state.selectedUserIndex;
+            // Показываем всех пользователей из базы
+            state.users.forEach((user) => {
+                const isCurrent = state.selectedUser && state.selectedUser.id === user.id;
                 html += `
                     <button class="user-btn ${isCurrent ? 'active' : ''}" 
-                            data-user-index="${index}">
-                        <span class="color-dot" style="background:${user.color}"></span>
+                            data-user-id="${user.id}">
+                        <span class="color-dot" style="background:${user.color || '#D9ADD1'}"></span>
                         ${escapeHtml(user.name)}
                         ${isCurrent ? ' ✎' : ''}
                     </button>
                 `;
             });
             
+            // Кнопка выхода
             html += `
                 <button class="user-btn" style="border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);">
                     <span class="color-dot" style="background:transparent;border:1px solid rgba(255,255,255,0.3);"></span>
@@ -1583,11 +1668,12 @@
             
             userSelector.innerHTML = html;
 
-            userSelector.querySelectorAll('[data-user-index]').forEach(btn => {
+            userSelector.querySelectorAll('[data-user-id]').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const index = parseInt(btn.dataset.userIndex);
-                    if (state.selectedUserIndex !== index) {
-                        state.selectedUserIndex = index;
+                    const userId = btn.dataset.userId;
+                    const selectedUser = state.users.find(u => u.id === userId);
+                    if (selectedUser && state.selectedUser?.id !== userId) {
+                        state.selectedUser = selectedUser;
                         render();
                     }
                 });
@@ -1628,15 +1714,15 @@
                 
                 let html = '<div class="day-view">';
                 
-                for (let u = 0; u < state.users.length; u++) {
-                    const user = state.users[u];
-                    const userTasks = allTasks.filter(t => t.user_index === u);
-                    const isCurrentUser = u === state.selectedUserIndex;
+                // Для каждого пользователя создаём отдельную карточку
+                state.users.forEach((user) => {
+                    const userTasks = allTasks.filter(t => t.user_id === user.id);
+                    const isCurrentUser = state.selectedUser && state.selectedUser.id === user.id;
                     
                     html += `
                         <div class="day-card">
                             <div class="day-card-header">
-                                <div class="color-bar" style="background:${user.color}"></div>
+                                <div class="color-bar" style="background:${user.color || '#D9ADD1'}"></div>
                                 <span class="user-name">${escapeHtml(user.name)}</span>
                                 <span class="badge">${isCurrentUser ? '✎ вы' : '👀 просмотр'}</span>
                             </div>
@@ -1685,7 +1771,7 @@
                             ` : ''}
                         </div>
                     `;
-                }
+                });
                 
                 html += '</div>';
                 content.innerHTML = html;
@@ -1703,14 +1789,13 @@
                 
                 let html = '<div class="week-compact">';
                 
-                for (let u = 0; u < state.users.length; u++) {
-                    const user = state.users[u];
-                    const isCurrentUser = u === state.selectedUserIndex;
+                state.users.forEach((user) => {
+                    const isCurrentUser = state.selectedUser && state.selectedUser.id === user.id;
                     
                     html += `
                         <div class="week-card">
                             <div class="week-header">
-                                <div class="color-bar" style="background:${user.color}"></div>
+                                <div class="color-bar" style="background:${user.color || '#D9ADD1'}"></div>
                                 <span class="user-name">${escapeHtml(user.name)}</span>
                                 <span class="badge">${isCurrentUser ? '✎ вы' : '👀 просмотр'}</span>
                             </div>
@@ -1718,7 +1803,7 @@
                     
                     weekDays.forEach((day, idx) => {
                         const dayKey = formatDateKey(day);
-                        const dayTasks = allTasks.filter(t => t.date_key === dayKey && t.user_index === u);
+                        const dayTasks = allTasks.filter(t => t.date_key === dayKey && t.user_id === user.id);
                         const today = isToday(day);
                         const dayName = weekDayNames[idx];
                         const dayNum = day.getDate();
@@ -1779,7 +1864,7 @@
                     }
                     
                     html += `</div>`;
-                }
+                });
                 
                 html += '</div>';
                 content.innerHTML = html;
@@ -1987,13 +2072,19 @@
         document.getElementById('signUpBtn').addEventListener('click', () => {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
-            if (email && password && password.length >= 6) {
-                signUp(email, password);
-            } else if (password.length < 6) {
-                authError.textContent = '❌ Пароль должен быть не менее 6 символов';
-            } else {
-                authError.textContent = '❌ Введите email и пароль';
+            const name = document.getElementById('authName').value;
+            
+            if (!email || !password || !name) {
+                authError.textContent = '❌ Заполните все поля';
+                return;
             }
+            
+            if (password.length < 6) {
+                authError.textContent = '❌ Пароль должен быть не менее 6 символов';
+                return;
+            }
+            
+            signUp(email, password, name);
         });
 
         document.getElementById('authEmail').addEventListener('keypress', (e) => {
@@ -2004,7 +2095,13 @@
 
         document.getElementById('authPassword').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                document.getElementById('signInBtn').click();
+                document.getElementById('authName').focus();
+            }
+        });
+
+        document.getElementById('authName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('signUpBtn').click();
             }
         });
 
@@ -2013,4 +2110,3 @@
     </script>
 </body>
 </html>
-```
