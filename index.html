@@ -1674,14 +1674,9 @@
                 render();
             });
 
-            // === Приветствие ===
+            // === Приветствие (показывается при каждом открытии) ===
             const welcomeOverlay = document.getElementById('welcomeOverlay');
             const welcomeBtn = document.getElementById('welcomeBtn');
-
-            // Проверяем, показывали ли уже приветствие
-            if (localStorage.getItem('welcome_shown')) {
-                welcomeOverlay.style.display = 'none';
-            }
 
             welcomeBtn.addEventListener('click', () => {
                 welcomeOverlay.style.opacity = '0';
@@ -1689,7 +1684,6 @@
                 setTimeout(() => {
                     welcomeOverlay.style.display = 'none';
                 }, 500);
-                localStorage.setItem('welcome_shown', 'true');
             });
 
             // === Init ===
