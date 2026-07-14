@@ -1160,7 +1160,7 @@
         </div>
     </div>
 
-    <div class="auth-overlay show" id="authOverlay">
+    <div class="auth-overlay" id="authOverlay">
         <div class="auth-content">
             <div class="auth-icon">🌹</div>
             <h2>Добро пожаловать!</h2>
@@ -1211,16 +1211,19 @@
             view: 'day',
             currentDate: new Date(),
             tasks: [],
-            users: [], // Заполняется из базы данных
-            selectedUser: null, // Текущий выбранный пользователь
+            users: [],
+            selectedUser: null,
             currentUser: null,
-            isAuthenticated: false
+            isAuthenticated: false,
+            isLoading: false,
+            taskCache: new Map() // Кэш для задач по датам
         };
 
         let deleteTarget = null;
         let syncTimeout = null;
         let supabaseChannel = null;
         let supabase = null;
+        let renderTimeout = null;
 
         // === DOM ===
         const $ = id => document.getElementById(id);
@@ -1297,18 +1300,31 @@
             return div.innerHTML;
         }
 
-        function showSyncStatus(message) {
+        function showSyncStatus(message, isError = false) {
             syncStatus.textContent = message;
+            syncStatus.style.color = isError ? '#ff6b6b' : '#fff';
             syncStatus.classList.add('show');
             clearTimeout(syncTimeout);
             syncTimeout = setTimeout(() => {
                 syncStatus.classList.remove('show');
-            }, 1500);
+                syncStatus.style.color = '#fff';
+            }, 2000);
         }
 
         function getRandomColor() {
             const colors = ['#D9ADD1', '#E26728', '#CBCADC', '#A8D5BA', '#F7DC6F', '#85C1E9', '#F1948A', '#82E0AA', '#85C1E9', '#F8C471'];
             return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(renderTimeout);
+                    func(...args);
+                };
+                clearTimeout(renderTimeout);
+                renderTimeout = setTimeout(later, wait);
+            };
         }
 
         // === РАБОТА С ПОЛЬЗОВАТЕЛЯМИ ===
@@ -1325,6 +1341,7 @@
                 return data || [];
             } catch (error) {
                 console.error('Ошибка загрузки пользователей:', error);
+                showSyncStatus('❌ Ошибка загрузки пользователей', true);
                 return [];
             }
         }
@@ -1333,6 +1350,17 @@
             if (!supabase || !userId || !name) return null;
             
             try {
+                // Проверяем, существует ли уже пользователь
+                const { data: existing } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .maybeSingle();
+                
+                if (existing) {
+                    return existing;
+                }
+                
                 const { data, error } = await supabase
                     .from('users')
                     .insert([{
@@ -1346,6 +1374,7 @@
                 return data[0];
             } catch (error) {
                 console.error('Ошибка создания пользователя:', error);
+                showSyncStatus('❌ Ошибка создания профиля', true);
                 return null;
             }
         }
@@ -1358,7 +1387,7 @@
                     .from('users')
                     .select('*')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
                 
                 if (error) throw error;
                 return data;
@@ -1386,8 +1415,7 @@
                     let userProfile = await getUserProfile(user.id);
                     
                     if (!userProfile) {
-                        // Если нет профиля — создаём с именем из email (временное)
-                        const tempName = user.email ? user.email.split('@')[0] : 'Пользователь';
+                        const tempName = user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь';
                         userProfile = await createUser(user.id, tempName);
                         if (userProfile) {
                             state.users = await loadUsers();
@@ -1398,7 +1426,6 @@
                     if (userProfile) {
                         state.selectedUser = userProfile;
                     } else {
-                        // Если профиль не создался — пробуем ещё раз
                         const newProfile = await createUser(user.id, 'Пользователь');
                         if (newProfile) {
                             state.selectedUser = newProfile;
@@ -1418,12 +1445,14 @@
                     state.isAuthenticated = false;
                     state.users = [];
                     state.selectedUser = null;
+                    state.taskCache.clear();
                     app.classList.remove('show');
                     authOverlay.classList.add('show');
                     return false;
                 }
             } catch (error) {
                 console.error('Ошибка проверки авторизации:', error);
+                showSyncStatus('❌ Ошибка авторизации', true);
                 return false;
             }
         }
@@ -1455,6 +1484,7 @@
                     email, 
                     password,
                     options: {
+                        data: { name: name.trim() },
                         emailRedirectTo: window.location.origin
                     }
                 });
@@ -1486,6 +1516,7 @@
                     supabaseChannel.unsubscribe();
                     supabaseChannel = null;
                 }
+                state.taskCache.clear();
                 await supabase.auth.signOut();
                 state.currentUser = null;
                 state.isAuthenticated = false;
@@ -1497,6 +1528,7 @@
                 showSyncStatus('👋 До свидания!');
             } catch (error) {
                 console.error('Ошибка выхода:', error);
+                showSyncStatus('❌ Ошибка выхода', true);
             }
         }
 
@@ -1505,6 +1537,16 @@
             if (!supabase || !state.currentUser) {
                 console.warn('Supabase не инициализирован или пользователь не авторизован');
                 return [];
+            }
+
+            // Проверяем кэш
+            const cacheKey = weekMode ? `week_${dateKey}` : `day_${dateKey}`;
+            if (state.taskCache.has(cacheKey)) {
+                const cached = state.taskCache.get(cacheKey);
+                if (Date.now() - cached.timestamp < 30000) { // 30 секунд кэш
+                    console.log('📦 Используем кэш для', cacheKey);
+                    return cached.data;
+                }
             }
 
             try {
@@ -1524,10 +1566,17 @@
                 const { data, error } = await query;
                 
                 if (error) throw error;
+                
+                // Сохраняем в кэш
+                state.taskCache.set(cacheKey, {
+                    data: data || [],
+                    timestamp: Date.now()
+                });
+                
                 return data || [];
             } catch (error) {
                 console.error('Ошибка загрузки задач:', error);
-                showSyncStatus('❌ Ошибка загрузки');
+                showSyncStatus('❌ Ошибка загрузки задач', true);
                 return [];
             }
         }
@@ -1535,28 +1584,17 @@
         async function addTask(dateKey, timeStart, timeEnd, text) {
             if (!supabase || !state.currentUser || !text.trim()) {
                 console.error('❌ Ошибка: Supabase или пользователь не инициализирован');
-                showSyncStatus('❌ Ошибка: войдите в аккаунт');
+                showSyncStatus('❌ Ошибка: войдите в аккаунт', true);
                 return null;
             }
 
             const userId = state.currentUser.id;
-            const userIndex = state.users.findIndex(u => u.id === userId);
-
-            console.log('📝 Добавление задачи:', {
-                user_id: userId,
-                user_index: userIndex,
-                date_key: dateKey,
-                time_start: timeStart || '12:00',
-                time_end: timeEnd || '',
-                text: text.trim()
-            });
 
             try {
                 const { data, error } = await supabase
                     .from('tasks')
                     .insert([{
                         user_id: userId,
-                        user_index: userIndex,
                         date_key: dateKey,
                         time_start: timeStart || '12:00',
                         time_end: timeEnd || '',
@@ -1566,16 +1604,20 @@
 
                 if (error) {
                     console.error('❌ Ошибка Supabase:', error);
-                    showSyncStatus('❌ ' + error.message);
+                    showSyncStatus('❌ ' + error.message, true);
                     return null;
                 }
+                
+                // Очищаем кэш для этой даты
+                const cacheKey = `day_${dateKey}`;
+                state.taskCache.delete(cacheKey);
                 
                 console.log('✅ Задача добавлена:', data);
                 showSyncStatus('✅ Задача добавлена');
                 return data[0];
             } catch (error) {
                 console.error('❌ Критическая ошибка:', error);
-                showSyncStatus('❌ Ошибка: ' + error.message);
+                showSyncStatus('❌ Ошибка: ' + error.message, true);
                 return null;
             }
         }
@@ -1592,11 +1634,14 @@
 
                 if (error) throw error;
                 
+                // Очищаем весь кэш при удалении
+                state.taskCache.clear();
+                
                 showSyncStatus('🗑️ Задача удалена');
                 return true;
             } catch (error) {
                 console.error('Ошибка удаления задачи:', error);
-                showSyncStatus('❌ Ошибка удаления');
+                showSyncStatus('❌ Ошибка удаления', true);
                 return false;
             }
         }
@@ -1605,6 +1650,7 @@
         function subscribeToTasks() {
             if (supabaseChannel) {
                 supabaseChannel.unsubscribe();
+                supabaseChannel = null;
             }
 
             if (!supabase || !state.currentUser) return;
@@ -1620,31 +1666,43 @@
                     },
                     async (payload) => {
                         console.log('🔄 Изменение в базе:', payload);
+                        // Очищаем кэш при любом изменении
+                        state.taskCache.clear();
+                        // Обновляем отображение
                         render();
                         showSyncStatus('🔄 Обновлено');
                     }
                 )
                 .subscribe((status) => {
                     console.log('📡 Подписка на изменения:', status);
+                    if (status === 'SUBSCRIBED') {
+                        showSyncStatus('📡 Соединение установлено');
+                    }
                 });
         }
 
         // === ОТРИСОВКА ===
         function render() {
+            if (!state.isAuthenticated || !state.selectedUser) return;
+            
             renderUserSelector();
             renderDateNav();
-            renderContent();
+            
+            if (state.view === 'day') {
+                renderDayView();
+            } else {
+                renderWeekView();
+            }
         }
 
         function renderUserSelector() {
             if (!state.currentUser || state.users.length === 0) {
-                userSelector.innerHTML = '';
+                userSelector.innerHTML = '<div class="loading-spinner" style="padding:4px 0;font-size:14px;">Загрузка пользователей...</div>';
                 return;
             }
 
             let html = '';
             
-            // Показываем всех пользователей из базы
             state.users.forEach((user) => {
                 const isCurrent = state.selectedUser && state.selectedUser.id === user.id;
                 html += `
@@ -1657,7 +1715,6 @@
                 `;
             });
             
-            // Кнопка выхода
             html += `
                 <button class="user-btn" style="border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);">
                     <span class="color-dot" style="background:transparent;border:1px solid rgba(255,255,255,0.3);"></span>
@@ -1698,14 +1755,6 @@
             }
         }
 
-        function renderContent() {
-            if (state.view === 'day') {
-                renderDayView();
-            } else {
-                renderWeekView();
-            }
-        }
-
         function renderDayView() {
             const dateKey = formatDateKey(state.currentDate);
             
@@ -1714,7 +1763,6 @@
                 
                 let html = '<div class="day-view">';
                 
-                // Для каждого пользователя создаём отдельную карточку
                 state.users.forEach((user) => {
                     const userTasks = allTasks.filter(t => t.user_id === user.id);
                     const isCurrentUser = state.selectedUser && state.selectedUser.id === user.id;
@@ -2106,7 +2154,16 @@
         });
 
         // === ИНИЦИАЛИЗАЦИЯ ===
+        // Проверяем авторизацию при загрузке
         checkAuth();
+
+        // Очистка кэша при закрытии
+        window.addEventListener('beforeunload', () => {
+            state.taskCache.clear();
+        });
+
+        console.log('🚀 Приложение запущено');
+        console.log('📅 Текущая дата:', new Date().toLocaleDateString());
     </script>
 </body>
 </html>
