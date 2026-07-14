@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Планер">
     <meta name="theme-color" content="#D9ADD1">
@@ -1211,8 +1211,8 @@
             view: 'day',
             currentDate: new Date(),
             tasks: [],
-            users: [],
-            selectedUser: null,
+            users: [], // Заполняется из базы данных
+            selectedUser: null, // Текущий выбранный пользователь
             currentUser: null,
             isAuthenticated: false
         };
@@ -1220,6 +1220,7 @@
         let deleteTarget = null;
         let syncTimeout = null;
         let supabaseChannel = null;
+        let supabase = null;
 
         // === DOM ===
         const $ = id => document.getElementById(id);
@@ -1234,7 +1235,6 @@
         const app = $('app');
 
         // === ИНИЦИАЛИЗАЦИЯ SUPABASE ===
-        let supabase = null;
         try {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             console.log('✅ Supabase инициализирован');
@@ -1370,11 +1370,6 @@
 
         // === АВТОРИЗАЦИЯ ===
         async function checkAuth() {
-            if (!supabase) {
-                console.error('❌ Supabase не инициализирован');
-                return false;
-            }
-
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 const { data: { user } } = await supabase.auth.getUser();
@@ -1391,6 +1386,7 @@
                     let userProfile = await getUserProfile(user.id);
                     
                     if (!userProfile) {
+                        // Если нет профиля — создаём с именем из email (временное)
                         const tempName = user.email ? user.email.split('@')[0] : 'Пользователь';
                         userProfile = await createUser(user.id, tempName);
                         if (userProfile) {
@@ -1398,8 +1394,16 @@
                         }
                     }
                     
+                    // Находим выбранного пользователя
                     if (userProfile) {
                         state.selectedUser = userProfile;
+                    } else {
+                        // Если профиль не создался — пробуем ещё раз
+                        const newProfile = await createUser(user.id, 'Пользователь');
+                        if (newProfile) {
+                            state.selectedUser = newProfile;
+                            state.users = await loadUsers();
+                        }
                     }
                     
                     authOverlay.classList.remove('show');
@@ -1461,6 +1465,7 @@
                     return;
                 }
                 
+                // Создаём профиль пользователя
                 if (data.user) {
                     await createUser(data.user.id, name.trim());
                 }
@@ -1498,6 +1503,7 @@
         // === РАБОТА С ЗАДАЧАМИ ===
         async function loadTasks(dateKey, weekMode = false) {
             if (!supabase || !state.currentUser) {
+                console.warn('Supabase не инициализирован или пользователь не авторизован');
                 return [];
             }
 
@@ -1528,12 +1534,22 @@
 
         async function addTask(dateKey, timeStart, timeEnd, text) {
             if (!supabase || !state.currentUser || !text.trim()) {
+                console.error('❌ Ошибка: Supabase или пользователь не инициализирован');
                 showSyncStatus('❌ Ошибка: войдите в аккаунт');
                 return null;
             }
 
             const userId = state.currentUser.id;
             const userIndex = state.users.findIndex(u => u.id === userId);
+
+            console.log('📝 Добавление задачи:', {
+                user_id: userId,
+                user_index: userIndex,
+                date_key: dateKey,
+                time_start: timeStart || '12:00',
+                time_end: timeEnd || '',
+                text: text.trim()
+            });
 
             try {
                 const { data, error } = await supabase
@@ -1548,13 +1564,18 @@
                     }])
                     .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Ошибка Supabase:', error);
+                    showSyncStatus('❌ ' + error.message);
+                    return null;
+                }
                 
+                console.log('✅ Задача добавлена:', data);
                 showSyncStatus('✅ Задача добавлена');
                 return data[0];
             } catch (error) {
-                console.error('Ошибка добавления:', error);
-                showSyncStatus('❌ ' + error.message);
+                console.error('❌ Критическая ошибка:', error);
+                showSyncStatus('❌ Ошибка: ' + error.message);
                 return null;
             }
         }
@@ -1574,7 +1595,7 @@
                 showSyncStatus('🗑️ Задача удалена');
                 return true;
             } catch (error) {
-                console.error('Ошибка удаления:', error);
+                console.error('Ошибка удаления задачи:', error);
                 showSyncStatus('❌ Ошибка удаления');
                 return false;
             }
@@ -1623,6 +1644,7 @@
 
             let html = '';
             
+            // Показываем всех пользователей из базы
             state.users.forEach((user) => {
                 const isCurrent = state.selectedUser && state.selectedUser.id === user.id;
                 html += `
@@ -1635,6 +1657,7 @@
                 `;
             });
             
+            // Кнопка выхода
             html += `
                 <button class="user-btn" style="border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);">
                     <span class="color-dot" style="background:transparent;border:1px solid rgba(255,255,255,0.3);"></span>
@@ -1691,6 +1714,7 @@
                 
                 let html = '<div class="day-view">';
                 
+                // Для каждого пользователя создаём отдельную карточку
                 state.users.forEach((user) => {
                     const userTasks = allTasks.filter(t => t.user_id === user.id);
                     const isCurrentUser = state.selectedUser && state.selectedUser.id === user.id;
