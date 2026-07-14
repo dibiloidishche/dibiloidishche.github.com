@@ -46,7 +46,7 @@
             touch-action: manipulation;
         }
 
-        /* Фон с розами - теперь видимый */
+        /* Фон с розами */
         body::before {
             content: '';
             position: fixed;
@@ -167,6 +167,121 @@
             background: rgba(255, 255, 255, 0.5);
         }
 
+        /* Экран авторизации */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(217, 173, 209, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .auth-overlay.show {
+            display: flex;
+        }
+
+        .auth-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s ease;
+        }
+
+        .auth-content .auth-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .auth-content h2 {
+            font-family: var(--font);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .auth-content p {
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .auth-content input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.02);
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .auth-content input:focus {
+            outline: none;
+            border-color: #D9ADD1;
+            background: rgba(217, 173, 209, 0.05);
+        }
+
+        .auth-content .auth-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #D9ADD1;
+            color: white;
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            margin-bottom: 8px;
+        }
+
+        .auth-content .auth-btn:active {
+            transform: scale(0.95);
+        }
+
+        .auth-content .auth-btn.secondary {
+            background: transparent;
+            border: 1.5px solid #D9ADD1;
+            color: #D9ADD1;
+            margin-bottom: 0;
+        }
+
+        .auth-content .auth-btn.secondary:active {
+            background: rgba(217, 173, 209, 0.05);
+        }
+
+        .auth-content .auth-error {
+            color: #e74c3c;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            min-height: 20px;
+            font-family: var(--font);
+        }
+
         /* Header */
         .header {
             display: flex;
@@ -270,6 +385,21 @@
             border-radius: 50%;
             margin-right: 6px;
             vertical-align: middle;
+        }
+
+        .user-btn .logout-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 6px;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+
+        .user-btn .logout-btn:hover {
+            color: #fff;
         }
 
         /* Date navigation */
@@ -1000,6 +1130,12 @@
             .welcome-content .welcome-icon {
                 font-size: 48px;
             }
+            .auth-content {
+                padding: 20px;
+            }
+            .auth-content h2 {
+                font-size: 20px;
+            }
         }
 
         @media (min-width: 600px) {
@@ -1062,6 +1198,15 @@
         .sync-status.show {
             opacity: 1;
         }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-light);
+            font-family: var(--font);
+            font-size: 16px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -1112,6 +1257,20 @@
         </div>
     </div>
 
+    <!-- Экран авторизации -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-content">
+            <div class="auth-icon">🌹</div>
+            <h2>Добро пожаловать!</h2>
+            <p>Войдите или зарегистрируйтесь,<br>чтобы начать планировать</p>
+            <div class="auth-error" id="authError"></div>
+            <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
+            <input id="authPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+            <button class="auth-btn" id="signInBtn">Войти</button>
+            <button class="auth-btn secondary" id="signUpBtn">Зарегистрироваться</button>
+        </div>
+    </div>
+
     <div id="app">
         <div class="header">
             <h1>🌹 Планер</h1>
@@ -1121,7 +1280,9 @@
             </div>
         </div>
 
-        <div class="user-selector" id="userSelector"></div>
+        <div class="user-selector" id="userSelector">
+            <!-- Только текущий пользователь -->
+        </div>
 
         <div class="date-nav">
             <button class="date-nav-btn" id="prevDate">‹</button>
@@ -1130,35 +1291,56 @@
             <button class="today-btn" id="todayBtn">Сегодня</button>
         </div>
 
-        <div class="content" id="content"></div>
+        <div class="content" id="content">
+            <div class="loading-spinner">Загрузка...</div>
+        </div>
 
         <div class="sync-status" id="syncStatus">● Синхронизировано</div>
     </div>
+
+    <!-- Подключение библиотеки Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         (function() {
             'use strict';
 
+            // === КОНФИГУРАЦИЯ SUPABASE ===
+            const SUPABASE_URL = 'https://hrwoenkrfducxuduuvfr.supabase.co';
+            const SUPABASE_KEY = 'sb_publishable_zwmmH6vHObejL0S_z7MdSg_Vq303EH4';
+
+            // === ИНИЦИАЛИЗАЦИЯ ===
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            // === КОНСТАНТЫ ===
             const COLORS = ['#D9ADD1', '#E26728', '#CBCADC'];
             const USER_NAMES = ['Лизик', 'Дашик', 'Катик'];
-            const STORAGE_KEY = 'planner_data';
-
+            
+            // === СОСТОЯНИЕ ===
             let state = {
                 view: 'day',
                 selectedUser: 0,
                 currentDate: new Date(),
-                data: {}
+                tasks: {},
+                currentUser: null,
+                isAuthenticated: false
             };
 
             let deleteTarget = null;
             let syncTimeout = null;
+            let supabaseChannel = null;
 
+            // === DOM ===
             const $ = id => document.getElementById(id);
             const userSelector = $('userSelector');
             const dateDisplay = $('dateDisplay');
             const content = $('content');
             const syncStatus = $('syncStatus');
+            const authOverlay = $('authOverlay');
+            const welcomeOverlay = $('welcomeOverlay');
+            const authError = $('authError');
 
+            // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
             function formatDateKey(date) {
                 const d = new Date(date);
                 return d.getFullYear() + '-' + 
@@ -1206,85 +1388,570 @@
                        d.getDate() === t.getDate();
             }
 
-            function loadData() {
-                try {
-                    const raw = localStorage.getItem(STORAGE_KEY);
-                    if (raw) {
-                        state.data = JSON.parse(raw);
-                    } else {
-                        state.data = {};
-                    }
-                } catch (e) {
-                    state.data = {};
-                }
-                for (let u = 0; u < 3; u++) {
-                    if (!state.data[u]) state.data[u] = {};
-                }
-                saveData();
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
 
-            function saveData() {
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-                } catch (e) {
-                    console.warn('Failed to save data:', e);
-                }
-            }
-
-            function getTasks(user, dateKey) {
-                if (!state.data[user]) state.data[user] = {};
-                if (!state.data[user][dateKey]) state.data[user][dateKey] = [];
-                return state.data[user][dateKey];
-            }
-
-            function setTasks(user, dateKey, tasks) {
-                if (!state.data[user]) state.data[user] = {};
-                state.data[user][dateKey] = tasks;
-                saveData();
-                triggerSync();
-            }
-
-            function addTask(user, dateKey, timeStart, timeEnd, text) {
-                if (!text.trim()) return null;
-                const tasks = getTasks(user, dateKey);
-                const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-                tasks.push({ id, timeStart: timeStart || '00:00', timeEnd: timeEnd || '', text: text.trim() });
-                setTasks(user, dateKey, tasks);
-                return id;
-            }
-
-            function deleteTask(user, dateKey, taskId) {
-                const tasks = getTasks(user, dateKey);
-                const filtered = tasks.filter(t => t.id !== taskId);
-                setTasks(user, dateKey, filtered);
-            }
-
-            function triggerSync() {
-                clearTimeout(syncTimeout);
-                syncStatus.textContent = '● Сохранение...';
+            function showSyncStatus(message) {
+                syncStatus.textContent = message;
                 syncStatus.classList.add('show');
+                clearTimeout(syncTimeout);
                 syncTimeout = setTimeout(() => {
-                    syncStatus.textContent = '● Синхронизировано';
-                    setTimeout(() => {
-                        syncStatus.classList.remove('show');
-                    }, 1500);
-                }, 300);
+                    syncStatus.classList.remove('show');
+                }, 1500);
             }
 
-            window.addEventListener('storage', (e) => {
-                if (e.key === STORAGE_KEY) {
-                    loadData();
-                    render();
-                    syncStatus.textContent = '● Обновлено';
-                    syncStatus.classList.add('show');
-                    setTimeout(() => {
-                        syncStatus.classList.remove('show');
-                    }, 1500);
-                }
-            });
+            // === РАБОТА С БАЗОЙ ДАННЫХ ===
+            async function loadTasksForDate(dateKey) {
+                if (!state.currentUser) return [];
 
-            function showDeleteModal(user, dateKey, taskId, taskText) {
-                deleteTarget = { user, dateKey, taskId, taskText };
+                try {
+                    const { data, error } = await supabase
+                        .from('tasks')
+                        .select('*')
+                        .eq('user_id', state.currentUser.id)
+                        .eq('date_key', dateKey)
+                        .order('time_start');
+
+                    if (error) throw error;
+                    return data || [];
+                } catch (error) {
+                    console.error('Ошибка загрузки задач:', error);
+                    showSyncStatus('❌ Ошибка загрузки');
+                    return [];
+                }
+            }
+
+            async function loadAllTasksForUser() {
+                if (!state.currentUser) return;
+
+                try {
+                    const { data, error } = await supabase
+                        .from('tasks')
+                        .select('*')
+                        .eq('user_id', state.currentUser.id);
+
+                    if (error) throw error;
+
+                    // Группируем задачи по датам
+                    const grouped = {};
+                    (data || []).forEach(task => {
+                        if (!grouped[task.date_key]) grouped[task.date_key] = [];
+                        grouped[task.date_key].push(task);
+                    });
+                    
+                    state.tasks = grouped;
+                    return grouped;
+                } catch (error) {
+                    console.error('Ошибка загрузки всех задач:', error);
+                    return {};
+                }
+            }
+
+            async function addTaskToSupabase(dateKey, timeStart, timeEnd, text) {
+                if (!state.currentUser || !text.trim()) return null;
+
+                try {
+                    const { data, error } = await supabase
+                        .from('tasks')
+                        .insert([{
+                            user_id: state.currentUser.id,
+                            date_key: dateKey,
+                            time_start: timeStart || '12:00',
+                            time_end: timeEnd || '',
+                            text: text.trim()
+                        }])
+                        .select();
+
+                    if (error) throw error;
+                    
+                    showSyncStatus('✅ Задача добавлена');
+                    
+                    // Обновляем локальный кэш
+                    if (!state.tasks[dateKey]) state.tasks[dateKey] = [];
+                    state.tasks[dateKey].push(data[0]);
+                    
+                    return data[0];
+                } catch (error) {
+                    console.error('Ошибка добавления задачи:', error);
+                    showSyncStatus('❌ Ошибка добавления');
+                    return null;
+                }
+            }
+
+            async function deleteTaskFromSupabase(taskId) {
+                if (!state.currentUser || !taskId) return false;
+
+                try {
+                    const { error } = await supabase
+                        .from('tasks')
+                        .delete()
+                        .eq('id', taskId)
+                        .eq('user_id', state.currentUser.id);
+
+                    if (error) throw error;
+                    
+                    showSyncStatus('🗑️ Задача удалена');
+                    
+                    // Удаляем из кэша
+                    for (const dateKey in state.tasks) {
+                        state.tasks[dateKey] = state.tasks[dateKey].filter(t => t.id !== taskId);
+                        if (state.tasks[dateKey].length === 0) {
+                            delete state.tasks[dateKey];
+                        }
+                    }
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Ошибка удаления задачи:', error);
+                    showSyncStatus('❌ Ошибка удаления');
+                    return false;
+                }
+            }
+
+            // === ПОДПИСКА НА ИЗМЕНЕНИЯ В РЕАЛЬНОМ ВРЕМЕНИ ===
+            function subscribeToTasks() {
+                if (supabaseChannel) {
+                    supabaseChannel.unsubscribe();
+                }
+
+                if (!state.currentUser) return;
+
+                supabaseChannel = supabase
+                    .channel('tasks-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'tasks',
+                            filter: `user_id=eq.${state.currentUser.id}`
+                        },
+                        async (payload) => {
+                            console.log('Изменение в базе:', payload);
+                            
+                            if (payload.eventType === 'INSERT') {
+                                const newTask = payload.new;
+                                if (!state.tasks[newTask.date_key]) state.tasks[newTask.date_key] = [];
+                                state.tasks[newTask.date_key].push(newTask);
+                                render();
+                            } else if (payload.eventType === 'DELETE') {
+                                const deletedId = payload.old.id;
+                                for (const dateKey in state.tasks) {
+                                    state.tasks[dateKey] = state.tasks[dateKey].filter(t => t.id !== deletedId);
+                                    if (state.tasks[dateKey].length === 0) {
+                                        delete state.tasks[dateKey];
+                                    }
+                                }
+                                render();
+                            } else if (payload.eventType === 'UPDATE') {
+                                const updatedTask = payload.new;
+                                for (const dateKey in state.tasks) {
+                                    const idx = state.tasks[dateKey].findIndex(t => t.id === updatedTask.id);
+                                    if (idx !== -1) {
+                                        state.tasks[dateKey][idx] = updatedTask;
+                                        break;
+                                    }
+                                }
+                                render();
+                            }
+                            
+                            showSyncStatus('🔄 Обновлено');
+                        }
+                    )
+                    .subscribe((status) => {
+                        console.log('Подписка на изменения:', status);
+                    });
+            }
+
+            // === АВТОРИЗАЦИЯ ===
+            async function checkAuth() {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    
+                    if (user && session) {
+                        state.currentUser = user;
+                        state.isAuthenticated = true;
+                        await loadAllTasksForUser();
+                        subscribeToTasks();
+                        authOverlay.classList.remove('show');
+                        document.getElementById('app').style.display = 'flex';
+                        render();
+                        return true;
+                    } else {
+                        state.currentUser = null;
+                        state.isAuthenticated = false;
+                        document.getElementById('app').style.display = 'none';
+                        authOverlay.classList.add('show');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Ошибка проверки авторизации:', error);
+                    return false;
+                }
+            }
+
+            async function signIn(email, password) {
+                authError.textContent = '';
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    await checkAuth();
+                    showSyncStatus('✅ Добро пожаловать!');
+                } catch (error) {
+                    authError.textContent = '❌ ' + error.message;
+                    console.error('Ошибка входа:', error);
+                }
+            }
+
+            async function signUp(email, password) {
+                authError.textContent = '';
+                try {
+                    const { data, error } = await supabase.auth.signUp({ 
+                        email, 
+                        password,
+                        options: {
+                            emailRedirectTo: window.location.origin
+                        }
+                    });
+                    if (error) throw error;
+                    
+                    if (data.user?.identities?.length === 0) {
+                        authError.textContent = '❌ Этот email уже зарегистрирован';
+                        return;
+                    }
+                    
+                    authError.textContent = '✅ Проверьте почту для подтверждения!';
+                    authError.style.color = '#27ae60';
+                    setTimeout(() => {
+                        authError.textContent = '';
+                        authError.style.color = '#e74c3c';
+                    }, 5000);
+                } catch (error) {
+                    authError.textContent = '❌ ' + error.message;
+                    console.error('Ошибка регистрации:', error);
+                }
+            }
+
+            async function signOut() {
+                try {
+                    if (supabaseChannel) {
+                        supabaseChannel.unsubscribe();
+                        supabaseChannel = null;
+                    }
+                    await supabase.auth.signOut();
+                    state.currentUser = null;
+                    state.isAuthenticated = false;
+                    state.tasks = {};
+                    document.getElementById('app').style.display = 'none';
+                    authOverlay.classList.add('show');
+                    showSyncStatus('👋 До свидания!');
+                } catch (error) {
+                    console.error('Ошибка выхода:', error);
+                }
+            }
+
+            // === ОТРИСОВКА ===
+            function render() {
+                renderUserSelector();
+                renderDateNav();
+                renderContent();
+            }
+
+            function renderUserSelector() {
+                if (!state.currentUser) {
+                    userSelector.innerHTML = '';
+                    return;
+                }
+
+                const email = state.currentUser.email || 'Пользователь';
+                const displayName = email.split('@')[0] || email;
+                
+                userSelector.innerHTML = `
+                    <button class="user-btn active">
+                        <span class="color-dot" style="background:#D9ADD1"></span>
+                        ${escapeHtml(displayName)}
+                        <button class="logout-btn" id="logoutBtn">🚪</button>
+                    </button>
+                `;
+
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm('Выйти из аккаунта?')) {
+                            signOut();
+                        }
+                    });
+                }
+            }
+
+            function renderDateNav() {
+                if (state.view === 'day') {
+                    dateDisplay.textContent = formatDateDisplay(state.currentDate);
+                } else {
+                    dateDisplay.textContent = formatWeekRange(state.currentDate);
+                }
+            }
+
+            function renderContent() {
+                if (state.view === 'day') {
+                    renderDayView();
+                } else {
+                    renderWeekView();
+                }
+            }
+
+            function getTasksForDate(dateKey) {
+                return state.tasks[dateKey] || [];
+            }
+
+            function renderDayView() {
+                const dateKey = formatDateKey(state.currentDate);
+                const tasks = getTasksForDate(dateKey);
+                
+                // Показываем только одного пользователя (текущего)
+                let html = '<div class="day-view">';
+                
+                const u = 0;
+                const isCurrentUser = true;
+                
+                html += `
+                    <div class="day-card">
+                        <div class="day-card-header">
+                            <div class="color-bar" style="background:${COLORS[u]}"></div>
+                            <span class="user-name">${escapeHtml(USER_NAMES[u])}</span>
+                            <span class="badge">✎ вы</span>
+                        </div>
+                        <div class="tasks" data-date="${dateKey}">
+                `;
+                
+                if (tasks.length === 0) {
+                    html += `<div class="task-empty">Нет планов на этот день 🌸</div>`;
+                } else {
+                    tasks.sort((a, b) => a.time_start.localeCompare(b.time_start));
+                    tasks.forEach(task => {
+                        const timeDisplay = task.time_end ? 
+                            `${escapeHtml(task.time_start)}–${escapeHtml(task.time_end)}` : 
+                            escapeHtml(task.time_start);
+                        html += `
+                            <div class="task-item" data-task-id="${task.id}">
+                                <span class="task-time">${timeDisplay}</span>
+                                <span class="task-text">${escapeHtml(task.text)}</span>
+                                <div class="task-actions">
+                                    <button class="task-btn delete" data-action="delete" 
+                                            data-task-id="${task.id}" 
+                                            data-task-text="${escapeHtml(task.text)}">✕</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                        </div>
+                        <div class="add-task-form" data-date="${dateKey}">
+                            <div class="time-group">
+                                <input type="time" class="task-time-start" value="12:00">
+                                <span>–</span>
+                                <input type="time" class="task-time-end" value="">
+                            </div>
+                            <input type="text" class="task-text-input" placeholder="Что планируете?" maxlength="100">
+                            <button class="add-btn" data-action="add">+</button>
+                        </div>
+                    </div>
+                `;
+                
+                html += '</div>';
+                content.innerHTML = html;
+                attachTaskEvents();
+            }
+
+            function renderWeekView() {
+                const weekDays = getWeekDays(state.currentDate);
+                const weekDayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+                
+                let html = '<div class="week-compact">';
+                
+                // Только один пользователь (текущий)
+                const u = 0;
+                const isCurrentUser = true;
+                
+                html += `
+                    <div class="week-card">
+                        <div class="week-header">
+                            <div class="color-bar" style="background:${COLORS[u]}"></div>
+                            <span class="user-name">${escapeHtml(USER_NAMES[u])}</span>
+                            <span class="badge">✎ вы</span>
+                        </div>
+                `;
+                
+                weekDays.forEach((day, idx) => {
+                    const dateKey = formatDateKey(day);
+                    const tasks = getTasksForDate(dateKey);
+                    const today = isToday(day);
+                    const dayName = weekDayNames[idx];
+                    const dayNum = day.getDate();
+                    
+                    html += `
+                        <div class="week-day-row" data-date="${dateKey}">
+                            <div class="day-label ${today ? 'today' : ''}">${dayName} ${dayNum}</div>
+                            <div class="day-tasks" data-date="${dateKey}">
+                    `;
+                    
+                    if (tasks.length === 0) {
+                        html += `<span class="week-empty-text">—</span>`;
+                    } else {
+                        tasks.sort((a, b) => a.time_start.localeCompare(b.time_start));
+                        tasks.forEach(task => {
+                            const timeDisplay = task.time_end ? 
+                                `${escapeHtml(task.time_start)}–${escapeHtml(task.time_end)}` : 
+                                escapeHtml(task.time_start);
+                            html += `
+                                <span class="wtask">
+                                    <span class="wtask-time">${timeDisplay}</span>
+                                    ${escapeHtml(task.text)}
+                                    <button class="wtask-delete" data-action="delete" 
+                                            data-task-id="${task.id}" 
+                                            data-task-text="${escapeHtml(task.text)}">✕</button>
+                                </span>
+                            `;
+                        });
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        <div class="week-add-form">
+                            <select class="wa-day-select">
+                                ${weekDays.map((day, idx) => `
+                                    <option value="${formatDateKey(day)}">${weekDayNames[idx]} ${day.getDate()}</option>
+                                `).join('')}
+                            </select>
+                            <div class="time-group">
+                                <input type="time" class="wa-time-start" value="12:00">
+                                <span>–</span>
+                                <input type="time" class="wa-time-end" value="">
+                            </div>
+                            <input type="text" class="wa-text-input" placeholder="План" maxlength="60">
+                            <button class="add-btn" data-action="add-week">+</button>
+                        </div>
+                    </div>
+                `;
+                
+                html += '</div>';
+                content.innerHTML = html;
+                attachWeekEvents();
+            }
+
+            // === ОБРАБОТЧИКИ СОБЫТИЙ ===
+            function attachTaskEvents() {
+                // Удаление
+                document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const taskId = btn.dataset.taskId;
+                        const taskText = btn.dataset.taskText || 'Задача';
+                        showDeleteModal(taskId, taskText);
+                    });
+                });
+                
+                // Добавление
+                document.querySelectorAll('[data-action="add"]').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const form = btn.closest('.add-task-form');
+                        const timeStart = form.querySelector('.task-time-start');
+                        const timeEnd = form.querySelector('.task-time-end');
+                        const textInput = form.querySelector('.task-text-input');
+                        const dateKey = form.dataset.date;
+                        
+                        const start = timeStart.value || '12:00';
+                        const end = timeEnd.value || '';
+                        const text = textInput.value.trim();
+                        
+                        if (!text) {
+                            textInput.focus();
+                            textInput.style.borderColor = '#e74c3c';
+                            setTimeout(() => textInput.style.borderColor = '', 2000);
+                            return;
+                        }
+                        
+                        await addTaskToSupabase(dateKey, start, end, text);
+                        render();
+                    });
+                });
+                
+                // Enter
+                document.querySelectorAll('.task-text-input').forEach(input => {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const form = input.closest('.add-task-form');
+                            const addBtn = form.querySelector('[data-action="add"]');
+                            if (addBtn) addBtn.click();
+                        }
+                    });
+                });
+            }
+
+            function attachWeekEvents() {
+                // Удаление
+                document.querySelectorAll('.wtask-delete').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const taskId = btn.dataset.taskId;
+                        const taskText = btn.dataset.taskText || 'Задача';
+                        showDeleteModal(taskId, taskText);
+                    });
+                });
+                
+                // Добавление
+                document.querySelectorAll('[data-action="add-week"]').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const form = btn.closest('.week-add-form');
+                        const daySelect = form.querySelector('.wa-day-select');
+                        const timeStart = form.querySelector('.wa-time-start');
+                        const timeEnd = form.querySelector('.wa-time-end');
+                        const textInput = form.querySelector('.wa-text-input');
+                        
+                        const dateKey = daySelect.value;
+                        const start = timeStart.value || '12:00';
+                        const end = timeEnd.value || '';
+                        const text = textInput.value.trim();
+                        
+                        if (!text) {
+                            textInput.focus();
+                            textInput.style.borderColor = '#e74c3c';
+                            setTimeout(() => textInput.style.borderColor = '', 2000);
+                            return;
+                        }
+                        
+                        await addTaskToSupabase(dateKey, start, end, text);
+                        render();
+                    });
+                });
+                
+                // Enter
+                document.querySelectorAll('.wa-text-input').forEach(input => {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const form = input.closest('.week-add-form');
+                            const addBtn = form.querySelector('[data-action="add-week"]');
+                            if (addBtn) addBtn.click();
+                        }
+                    });
+                });
+            }
+
+            // === МОДАЛЬНОЕ ОКНО УДАЛЕНИЯ ===
+            function showDeleteModal(taskId, taskText) {
+                deleteTarget = taskId;
                 
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay';
@@ -1307,9 +1974,9 @@
                     closeModal();
                 });
 
-                document.getElementById('modalConfirm').addEventListener('click', () => {
+                document.getElementById('modalConfirm').addEventListener('click', async () => {
                     if (deleteTarget) {
-                        deleteTask(deleteTarget.user, deleteTarget.dateKey, deleteTarget.taskId);
+                        await deleteTaskFromSupabase(deleteTarget);
                         deleteTarget = null;
                         closeModal();
                         render();
@@ -1327,315 +1994,7 @@
                 deleteTarget = null;
             }
 
-            function render() {
-                renderUserSelector();
-                renderDateNav();
-                renderContent();
-            }
-
-            function renderUserSelector() {
-                userSelector.innerHTML = USER_NAMES.map((name, i) => `
-                    <button class="user-btn ${state.selectedUser === i ? 'active' : ''}" 
-                            data-user="${i}">
-                        <span class="color-dot" style="background:${COLORS[i]}"></span>
-                        ${name}
-                        ${state.selectedUser === i ? ' ✎' : ''}
-                    </button>
-                `).join('');
-
-                userSelector.querySelectorAll('.user-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        state.selectedUser = parseInt(btn.dataset.user);
-                        render();
-                    });
-                });
-            }
-
-            function renderDateNav() {
-                if (state.view === 'day') {
-                    dateDisplay.textContent = formatDateDisplay(state.currentDate);
-                } else {
-                    dateDisplay.textContent = formatWeekRange(state.currentDate);
-                }
-            }
-
-            function renderContent() {
-                if (state.view === 'day') {
-                    renderDayView();
-                } else {
-                    renderWeekView();
-                }
-            }
-
-            function renderDayView() {
-                const dateKey = formatDateKey(state.currentDate);
-                
-                let html = '<div class="day-view">';
-                
-                for (let u = 0; u < 3; u++) {
-                    const tasks = getTasks(u, dateKey);
-                    const isCurrentUser = u === state.selectedUser;
-                    
-                    html += `
-                        <div class="day-card">
-                            <div class="day-card-header">
-                                <div class="color-bar" style="background:${COLORS[u]}"></div>
-                                <span class="user-name">${USER_NAMES[u]}</span>
-                                <span class="badge">${isCurrentUser ? '✎ вы' : 'просмотр'}</span>
-                            </div>
-                            <div class="tasks" data-user="${u}" data-date="${dateKey}">
-                    `;
-                    
-                    if (tasks.length === 0) {
-                        html += `<div class="task-empty">Нет планов на этот день</div>`;
-                    } else {
-                        tasks.sort((a, b) => a.timeStart.localeCompare(b.timeStart));
-                        tasks.forEach(task => {
-                            const timeDisplay = task.timeEnd ? 
-                                `${escapeHtml(task.timeStart)}–${escapeHtml(task.timeEnd)}` : 
-                                escapeHtml(task.timeStart);
-                            html += `
-                                <div class="task-item" data-task-id="${task.id}">
-                                    <span class="task-time">
-                                        ${timeDisplay}
-                                    </span>
-                                    <span class="task-text">${escapeHtml(task.text)}</span>
-                                    ${isCurrentUser ? `
-                                        <div class="task-actions">
-                                            <button class="task-btn delete" data-action="delete" 
-                                                    data-task-id="${task.id}" 
-                                                    data-task-text="${escapeHtml(task.text)}">✕</button>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `;
-                        });
-                    }
-                    
-                    html += `</div>`;
-                    
-                    if (isCurrentUser) {
-                        html += `
-                            <div class="add-task-form" data-user="${u}" data-date="${dateKey}">
-                                <div class="time-group">
-                                    <input type="time" class="task-time-start" value="12:00">
-                                    <span>–</span>
-                                    <input type="time" class="task-time-end" value="">
-                                </div>
-                                <input type="text" class="task-text-input" placeholder="Что планируете?" maxlength="100">
-                                <button class="add-btn" data-action="add">+</button>
-                            </div>
-                        `;
-                    }
-                    
-                    html += `</div>`;
-                }
-                
-                html += '</div>';
-                content.innerHTML = html;
-                attachTaskEvents();
-            }
-
-            function renderWeekView() {
-                const weekDays = getWeekDays(state.currentDate);
-                const weekDayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-                
-                let html = '<div class="week-compact">';
-                
-                for (let u = 0; u < 3; u++) {
-                    const isCurrentUser = u === state.selectedUser;
-                    
-                    html += `
-                        <div class="week-card" data-user="${u}">
-                            <div class="week-header">
-                                <div class="color-bar" style="background:${COLORS[u]}"></div>
-                                <span class="user-name">${USER_NAMES[u]}</span>
-                                <span class="badge">${isCurrentUser ? '✎ вы' : 'просмотр'}</span>
-                            </div>
-                    `;
-                    
-                    weekDays.forEach((day, idx) => {
-                        const dateKey = formatDateKey(day);
-                        const tasks = getTasks(u, dateKey);
-                        const today = isToday(day);
-                        const dayName = weekDayNames[idx];
-                        const dayNum = day.getDate();
-                        
-                        html += `
-                            <div class="week-day-row" data-user="${u}" data-date="${dateKey}">
-                                <div class="day-label ${today ? 'today' : ''}">${dayName} ${dayNum}</div>
-                                <div class="day-tasks" data-user="${u}" data-date="${dateKey}">
-                        `;
-                        
-                        if (tasks.length === 0) {
-                            html += `<span class="week-empty-text">—</span>`;
-                        } else {
-                            tasks.sort((a, b) => a.timeStart.localeCompare(b.timeStart));
-                            tasks.forEach(task => {
-                                const timeDisplay = task.timeEnd ? 
-                                    `${escapeHtml(task.timeStart)}–${escapeHtml(task.timeEnd)}` : 
-                                    escapeHtml(task.timeStart);
-                                html += `
-                                    <span class="wtask">
-                                        <span class="wtask-time">
-                                            ${timeDisplay}
-                                        </span>
-                                        ${escapeHtml(task.text)}
-                                        ${isCurrentUser ? `
-                                            <button class="wtask-delete" data-action="delete" 
-                                                    data-task-id="${task.id}" 
-                                                    data-task-text="${escapeHtml(task.text)}">✕</button>
-                                        ` : ''}
-                                    </span>
-                                `;
-                            });
-                        }
-                        
-                        html += `
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    if (isCurrentUser) {
-                        html += `
-                            <div class="week-add-form" data-user="${u}">
-                                <select class="wa-day-select">
-                                    ${weekDays.map((day, idx) => `
-                                        <option value="${formatDateKey(day)}">${weekDayNames[idx]} ${day.getDate()}</option>
-                                    `).join('')}
-                                </select>
-                                <div class="time-group">
-                                    <input type="time" class="wa-time-start" value="12:00">
-                                    <span>–</span>
-                                    <input type="time" class="wa-time-end" value="">
-                                </div>
-                                <input type="text" class="wa-text-input" placeholder="План" maxlength="60">
-                                <button class="add-btn" data-action="add-week">+</button>
-                            </div>
-                        `;
-                    }
-                    
-                    html += `</div>`;
-                }
-                
-                html += '</div>';
-                content.innerHTML = html;
-                attachWeekEvents();
-            }
-
-            function attachTaskEvents() {
-                document.querySelectorAll('[data-action="delete"]').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const taskId = btn.dataset.taskId;
-                        const taskText = btn.dataset.taskText || 'Задача';
-                        const tasksContainer = btn.closest('.tasks, .day-tasks');
-                        if (!tasksContainer) return;
-                        
-                        const user = parseInt(tasksContainer.dataset.user);
-                        const dateKey = tasksContainer.dataset.date;
-                        
-                        showDeleteModal(user, dateKey, taskId, taskText);
-                    });
-                });
-                
-                document.querySelectorAll('[data-action="add"]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const form = btn.closest('.add-task-form');
-                        const timeStart = form.querySelector('.task-time-start');
-                        const timeEnd = form.querySelector('.task-time-end');
-                        const textInput = form.querySelector('.task-text-input');
-                        const user = parseInt(form.dataset.user);
-                        const dateKey = form.dataset.date;
-                        
-                        const start = timeStart.value || '12:00';
-                        const end = timeEnd.value || '';
-                        const text = textInput.value.trim();
-                        
-                        if (!text) {
-                            textInput.focus();
-                            textInput.style.borderColor = '#e74c3c';
-                            setTimeout(() => textInput.style.borderColor = '', 2000);
-                            return;
-                        }
-                        
-                        addTask(user, dateKey, start, end, text);
-                        render();
-                    });
-                });
-                
-                document.querySelectorAll('.task-text-input').forEach(input => {
-                    input.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            const form = input.closest('.add-task-form');
-                            const addBtn = form.querySelector('[data-action="add"]');
-                            if (addBtn) addBtn.click();
-                        }
-                    });
-                });
-            }
-
-            function attachWeekEvents() {
-                document.querySelectorAll('.wtask-delete').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const taskId = btn.dataset.taskId;
-                        const taskText = btn.dataset.taskText || 'Задача';
-                        const dayTasks = btn.closest('.day-tasks');
-                        if (!dayTasks) return;
-                        
-                        const user = parseInt(dayTasks.dataset.user);
-                        const dateKey = dayTasks.dataset.date;
-                        
-                        showDeleteModal(user, dateKey, taskId, taskText);
-                    });
-                });
-                
-                document.querySelectorAll('[data-action="add-week"]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const form = btn.closest('.week-add-form');
-                        const daySelect = form.querySelector('.wa-day-select');
-                        const timeStart = form.querySelector('.wa-time-start');
-                        const timeEnd = form.querySelector('.wa-time-end');
-                        const textInput = form.querySelector('.wa-text-input');
-                        const user = parseInt(form.dataset.user);
-                        
-                        const dateKey = daySelect.value;
-                        const start = timeStart.value || '12:00';
-                        const end = timeEnd.value || '';
-                        const text = textInput.value.trim();
-                        
-                        if (!text) {
-                            textInput.focus();
-                            textInput.style.borderColor = '#e74c3c';
-                            setTimeout(() => textInput.style.borderColor = '', 2000);
-                            return;
-                        }
-                        
-                        addTask(user, dateKey, start, end, text);
-                        render();
-                    });
-                });
-                
-                document.querySelectorAll('.wa-text-input').forEach(input => {
-                    input.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            const form = input.closest('.week-add-form');
-                            const addBtn = form.querySelector('[data-action="add-week"]');
-                            if (addBtn) addBtn.click();
-                        }
-                    });
-                });
-            }
-
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            // === Navigation ===
+            // === НАВИГАЦИЯ ===
             document.getElementById('prevDate').addEventListener('click', () => {
                 if (state.view === 'day') {
                     state.currentDate.setDate(state.currentDate.getDate() - 1);
@@ -1659,7 +2018,7 @@
                 render();
             });
 
-            // === View switching ===
+            // === ПЕРЕКЛЮЧЕНИЕ ВИДОВ ===
             document.getElementById('viewDay').addEventListener('click', () => {
                 state.view = 'day';
                 document.getElementById('viewDay').classList.add('active');
@@ -1674,10 +2033,8 @@
                 render();
             });
 
-            // === Приветствие (показывается при каждом открытии) ===
-            const welcomeOverlay = document.getElementById('welcomeOverlay');
+            // === ПРИВЕТСТВИЕ ===
             const welcomeBtn = document.getElementById('welcomeBtn');
-
             welcomeBtn.addEventListener('click', () => {
                 welcomeOverlay.style.opacity = '0';
                 welcomeOverlay.style.transition = 'opacity 0.5s ease';
@@ -1686,10 +2043,48 @@
                 }, 500);
             });
 
-            // === Init ===
-            loadData();
-            render();
-            document.getElementById('viewDay').classList.add('active');
+            // === АВТОРИЗАЦИЯ ===
+            document.getElementById('signInBtn').addEventListener('click', () => {
+                const email = document.getElementById('authEmail').value;
+                const password = document.getElementById('authPassword').value;
+                if (email && password) {
+                    signIn(email, password);
+                } else {
+                    authError.textContent = '❌ Введите email и пароль';
+                }
+            });
+
+            document.getElementById('signUpBtn').addEventListener('click', () => {
+                const email = document.getElementById('authEmail').value;
+                const password = document.getElementById('authPassword').value;
+                if (email && password && password.length >= 6) {
+                    signUp(email, password);
+                } else if (password.length < 6) {
+                    authError.textContent = '❌ Пароль должен быть не менее 6 символов';
+                } else {
+                    authError.textContent = '❌ Введите email и пароль';
+                }
+            });
+
+            // Enter на полях авторизации
+            document.getElementById('authEmail').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('authPassword').focus();
+                }
+            });
+
+            document.getElementById('authPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('signInBtn').click();
+                }
+            });
+
+            // === ИНИЦИАЛИЗАЦИЯ ===
+            // Скрываем приложение до авторизации
+            document.getElementById('app').style.display = 'none';
+            
+            // Проверяем авторизацию при загрузке
+            checkAuth();
 
         })();
     </script>
